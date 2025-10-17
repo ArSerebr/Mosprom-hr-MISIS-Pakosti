@@ -1,14 +1,18 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from tortoise import Tortoise
 from auth.router import router as auth_router
+from vacancies.router import router as vacancies_router
+from database import init_db
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 🚀 при запуске
-    print("🚀 Приложение запущено")
+async def lifespan(app_instance):
+    await init_db()
     yield
-    # 🛑 при выключении
-    print("🛑 Приложение остановлено")
+    await Tortoise.close_connections()
 
-app = FastAPI()
-app.include_router(auth_router, prefix='/api/v1/auth')
+
+app = FastAPI(title="HR Application", lifespan=lifespan)
+app.include_router(auth_router, prefix="/auth")
+app.include_router(vacancies_router, prefix="")
