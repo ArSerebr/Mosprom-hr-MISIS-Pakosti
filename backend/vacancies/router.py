@@ -80,3 +80,17 @@ async def create_application(application_data: ApplicationCreate):
     return await Application_Pydantic.from_tortoise_orm(application)
 
 
+@router.get("/vacancies/", response_model=list[Vacancy_Pydantic])
+async def get_my_vacancies(user: User = Depends(get_current_user)):
+    """
+    get реквест, получает вакансии, созданные данным пользователем
+    """
+
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    vacancies = Vacancy.filter(created_by=user.id)
+    if not vacancies:
+        raise HTTPException(status_code=404, detail="Vacancies not found")
+
+    return await Vacancy_Pydantic.from_queryset(vacancies)
