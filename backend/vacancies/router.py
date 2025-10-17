@@ -9,6 +9,7 @@ from vacancies.schemas import (
     VacancyCreate,
     VacancyUpdate,
     ApplicationCreate,
+    ApplicationAndId,
 )
 
 
@@ -94,3 +95,16 @@ async def get_my_vacancies(user: User = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Vacancies not found")
 
     return await Vacancy_Pydantic.from_queryset(vacancies)
+
+
+@router.get("/my_vacancies", response_model=list[ApplicationAndId])
+async def get_applications_for_my_vacancies(user: User = Depends(get_current_user)):
+    """
+    get реквест, получает все отклики на все вакансии, созданные данным пользователем
+    """
+
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    applications = await Application.filter(vacancy__created_by=user.id).select_related("vacancy")
+    return [ApplicationAndId(vacancy_id=app.vacancy.id, application=app) for app in applications]

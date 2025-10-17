@@ -12,6 +12,9 @@ Application_Pydantic = pydantic_model_creator(Application, name="Application")
 VacancyCreate_Pydantic = pydantic_model_creator(Vacancy, name="VacancyCreate", exclude_readonly=True)
 ApplicationCreate_Pydantic = pydantic_model_creator(Application, name="ApplicationCreate", exclude_readonly=True)
 
+class ApplicationAndId(BaseModel):
+    vacancy_id: int
+    application: Application_Pydantic
 
 class VacancyCreate(BaseModel):
     title: str

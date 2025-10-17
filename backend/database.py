@@ -7,7 +7,7 @@ from auth.models import User
 async def init_db():
     await Tortoise.init(
         db_url='sqlite://db.sqlite3',
-        modules={'models': ['auth.models', 'vacancies.models']}
+        modules={'models': ['auth.models', 'vacancies.models', 'internship.models']}
     )
     await Tortoise.generate_schemas()
 
