@@ -12,7 +12,7 @@ from auth.models import User
 
 security = HTTPBearer()
 
-router = APIRouter()
+router = APIRouter(tags=['auth'])
 
 @router.get("/me")
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):

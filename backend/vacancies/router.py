@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from typing import Optional, List
+
 
 from auth.router import get_current_user
 from auth.models import User
@@ -9,7 +11,7 @@ from vacancies.schemas import (
     VacancyCreate,
     VacancyUpdate,
     ApplicationCreate,
-    ApplicationAndId,
+    ApplicationAndId
 )
 
 
@@ -30,10 +32,24 @@ async def create_vacancy(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     vacancy = await Vacancy.create(
-        title=vacancy_data.title,
-        description=vacancy_data.description,
-        company=vacancy_data.company,
-        type=vacancy_data.type,
+        vacancy_title=vacancy_data.vacancy_title,
+        company_logo=vacancy_data.company_logo,
+        company_name=vacancy_data.company_name,
+        platform=vacancy_data.platform,
+        specialty=vacancy_data.specialty,
+        responsibilities=vacancy_data.responsibilities,
+        requirements=vacancy_data.requirements,
+        employment_type=vacancy_data.employment_type,
+        schedule=vacancy_data.schedule,
+        location=vacancy_data.location,
+        location_yandex_link=vacancy_data.location_yandex_link,
+        probation=vacancy_data.probation,
+        salary=vacancy_data.salary,
+        extra_info=vacancy_data.extra_info,
+        link_text=vacancy_data.link_text,
+        company_website=vacancy_data.company_website,
+        promo_video=vacancy_data.promo_video,
+        status=vacancy_data.status,
         created_by_id=user.id
     )
     return await Vacancy_Pydantic.from_tortoise_orm(vacancy)
@@ -108,3 +124,73 @@ async def get_applications_for_my_vacancies(user: User = Depends(get_current_use
 
     applications = await Application.filter(vacancy__created_by=user.id).select_related("vacancy")
     return [ApplicationAndId(vacancy_id=app.vacancy.id, application=app) for app in applications]
+
+
+@router.post("/bitrix-form-json")
+async def receive_bitrix_form_json(vacancy_data: VacancyCreate):
+    # Тут вы можете сохранить данные в БД, лог, отправить в Telegram и т.д.
+    vacancy = await Vacancy.create(
+        vacancy_title=vacancy_data.vacancy_title,
+        company_logo=vacancy_data.company_logo,
+        company_name=vacancy_data.company_name,
+        platform=vacancy_data.platform,
+        specialty=vacancy_data.specialty,
+        responsibilities=vacancy_data.responsibilities,
+        requirements=vacancy_data.requirements,
+        employment_type=vacancy_data.employment_type,
+        schedule=vacancy_data.schedule,
+        location=vacancy_data.location,
+        location_yandex_link=vacancy_data.location_yandex_link,
+        probation=vacancy_data.probation,
+        salary=vacancy_data.salary,
+        extra_info=vacancy_data.extra_info,
+        link_text=vacancy_data.link_text,
+        company_website=vacancy_data.company_website,
+        promo_video=vacancy_data.promo_video,
+        status=vacancy_data.status,
+        created_by_id="bitrix"
+    )
+    return {"status": "ok", "received": vacancy_data.dict()}
+
+
+@router.post('/bitrix-form')
+async def receive_bitrix_form(
+    vacancy_title: str = Form(...),
+    company_logo: Optional[UploadFile] = File(None),
+    company_name: str = Form(...),
+    platform: str = Form(...),
+    specialty: str = Form(...),
+    responsibilities: List[str] = Form(...),
+    requirements: List[str] = Form(...),
+    employment_type: Optional[str] = Form(None),
+    schedule: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    location_yandex_link: Optional[str] = Form(None),
+    probation: Optional[str] = Form(None),
+    salary: Optional[str] = Form(None),
+    extra_info: Optional[str] = Form(None),
+    link_text: Optional[str] = Form(None),
+    company_website: Optional[str] = Form(None),
+    promo_video: Optional[str] = Form(None),
+):
+    form_data = {
+        "vacancy_title": vacancy_title,
+        "company_logo": company_logo.filename if company_logo else None,
+        "company_name": company_name,
+        "platform": platform,
+        "specialty": specialty,
+        "responsibilities": responsibilities,
+        "requirements": requirements,
+        "employment_type": employment_type,
+        "schedule": schedule,
+        "location": location,
+        "location_yandex_link": location_yandex_link,
+        "probation": probation,
+        "salary": salary,
+        "extra_info": extra_info,
+        "link_text": link_text,
+        "company_website": company_website,
+        "promo_video": promo_video,
+    }
+    vacancy = await Vacancy.create(created_by_id="bitrix", status="pending", **form_data)
+    return {"status": "ok", "received": form_data}
