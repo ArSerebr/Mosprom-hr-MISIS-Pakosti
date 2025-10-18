@@ -300,7 +300,7 @@ export default function CandidatesPage() {
         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="blue" variant="light">
+              <ThemeIcon size="xl" radius="md" color="red" variant="light">
                 <IconUser size={24} />
               </ThemeIcon>
               <div>
@@ -315,7 +315,7 @@ export default function CandidatesPage() {
           </Card>
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="blue" variant="light">
+              <ThemeIcon size="xl" radius="md" color="red" variant="light">
                 <IconClock size={24} />
               </ThemeIcon>
               <div>
@@ -415,7 +415,7 @@ export default function CandidatesPage() {
                 <Table.Tr key={candidate.id}>
                   <Table.Td>
                     <Group gap="sm">
-                      <Avatar color="blue" radius="xl">
+                      <Avatar color="red" radius="xl">
                         {candidate.name
                           .split(" ")
                           .map((n: string) => n[0])
@@ -506,7 +506,7 @@ export default function CandidatesPage() {
                     <Group gap="xs">
                       <ActionIcon
                         variant="light"
-                        color="blue"
+                        color="red"
                         onClick={() => handleView(candidate)}
                       >
                         <IconEye size={18} />
@@ -633,7 +633,7 @@ export default function CandidatesPage() {
         {selectedCandidate && (
           <Stack>
             <Group>
-              <Avatar size="xl" color="blue" radius="xl">
+              <Avatar size="xl" color="red" radius="xl">
                 {selectedCandidate.name
                   .split(" ")
                   .map((n: string) => n[0])

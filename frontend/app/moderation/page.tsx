@@ -447,7 +447,7 @@ export default function ModerationPage() {
                 <IconFilter size={20} />
                 <Text fw={600}>Фильтры</Text>
                 {hasActiveFilters && (
-                  <Badge color="blue" variant="light">
+                  <Badge color="red" variant="light">
                     Активно
                   </Badge>
                 )}
@@ -690,7 +690,7 @@ export default function ModerationPage() {
                               </Text>
                               <ActionIcon
                                 variant="light"
-                                color="blue"
+                                color="red"
                                 size="sm"
                                 onClick={() => handleViewDetails(vacancy)}
                               >

@@ -342,7 +342,7 @@ function VacanciesContent() {
                     <Group gap="xs">
                       <ActionIcon
                         variant="light"
-                        color="blue"
+                        color="red"
                         onClick={() => handleView(vacancy)}
                       >
                         <IconEye size={18} />

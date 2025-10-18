@@ -263,7 +263,7 @@ export default function InternshipsPage() {
         <Group justify="space-between">
           <Title order={1}>Стажировки</Title>
           <Button leftSection={<IconPlus size={18} />} onClick={handleCreate}>
-            Создать стажировку
+            Заявка на стажировку
           </Button>
         </Group>
 
@@ -271,7 +271,7 @@ export default function InternshipsPage() {
         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="blue" variant="light">
+              <ThemeIcon size="xl" radius="md" color="red" variant="light">
                 <IconSchool size={24} />
               </ThemeIcon>
               <div>
@@ -301,7 +301,7 @@ export default function InternshipsPage() {
           </Card>
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="blue" variant="light">
+              <ThemeIcon size="xl" radius="md" color="red" variant="light">
                 <IconUsers size={24} />
               </ThemeIcon>
               <div>
@@ -358,7 +358,7 @@ export default function InternshipsPage() {
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Название</Table.Th>
-                <Table.Th>Отдел</Table.Th>
+                <Table.Th>ВУЗ</Table.Th>
                 <Table.Th>Длительность</Table.Th>
                 <Table.Th>Даты</Table.Th>
                 <Table.Th>Заявки</Table.Th>
@@ -415,7 +415,7 @@ export default function InternshipsPage() {
                     <Group gap="xs">
                       <ActionIcon
                         variant="light"
-                        color="blue"
+                        color="red"
                         onClick={() => handleView(internship)}
                       >
                         <IconEye size={18} />
@@ -447,7 +447,7 @@ export default function InternshipsPage() {
       <Modal
         opened={opened}
         onClose={close}
-        title={editMode ? "Редактировать стажировку" : "Создать стажировку"}
+        title={editMode ? "Редактировать заявку на стажировку" : "Подать заявку на стажировку"}
         size="lg"
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -461,8 +461,8 @@ export default function InternshipsPage() {
             <Grid>
               <Grid.Col span={6}>
                 <TextInput
-                  label="Отдел"
-                  placeholder="IT"
+                  label="ВУЗ"
+                  placeholder="МГУ им. М.В. Ломоносова"
                   required
                   {...form.getInputProps("department")}
                 />
@@ -520,7 +520,7 @@ export default function InternshipsPage() {
                 Отмена
               </Button>
               <Button type="submit">
-                {editMode ? "Сохранить" : "Создать"}
+                {editMode ? "Сохранить" : "Подать заявку"}
               </Button>
             </Group>
           </Stack>
@@ -547,7 +547,7 @@ export default function InternshipsPage() {
             <Grid>
               <Grid.Col span={6}>
                 <Text size="sm" c="dimmed">
-                  Отдел
+                  ВУЗ
                 </Text>
                 <Text>{selectedInternship.department}</Text>
               </Grid.Col>

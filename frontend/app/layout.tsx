@@ -10,7 +10,7 @@ import { theme } from "./theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata = {
-  title: "HR Management System",
+  title: "HR контур",
   description: "Современная система управления персоналом",
 };
 

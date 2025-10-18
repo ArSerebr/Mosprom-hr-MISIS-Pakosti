@@ -14,8 +14,7 @@ class User(models.Model):
     created_at = fields.DatetimeField(auto_now_add=True)
 
     async def verify_password(self, password: str):
-        """Move this to avoid circular imports"""
-        from auth import verify_password  # Import inside method
+        from auth import verify_password  
         return verify_password(password, self.password_hash)
 
     class PydanticMeta:
