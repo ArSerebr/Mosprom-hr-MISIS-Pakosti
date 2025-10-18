@@ -129,6 +129,7 @@ async def get_applications_for_my_vacancies(user: User = Depends(get_current_use
 @router.post("/bitrix-form-json")
 async def receive_bitrix_form_json(vacancy_data: VacancyCreate):
     # Тут вы можете сохранить данные в БД, лог, отправить в Telegram и т.д.
+    # Для Bitrix создаем вакансию без привязки к пользователю (created_by_id=None)
     vacancy = await Vacancy.create(
         vacancy_title=vacancy_data.vacancy_title,
         company_logo=vacancy_data.company_logo,
@@ -147,8 +148,8 @@ async def receive_bitrix_form_json(vacancy_data: VacancyCreate):
         link_text=vacancy_data.link_text,
         company_website=vacancy_data.company_website,
         promo_video=vacancy_data.promo_video,
-        status=vacancy_data.status,
-        created_by_id="bitrix"
+        status="pending",  # Bitrix вакансии всегда pending
+        created_by_id=None  # Bitrix не привязан к пользователю
     )
     return {"status": "ok", "received": vacancy_data.dict()}
 
@@ -160,8 +161,8 @@ async def receive_bitrix_form(
     company_name: str = Form(...),
     platform: str = Form(...),
     specialty: str = Form(...),
-    responsibilities: List[str] = Form(...),
-    requirements: List[str] = Form(...),
+    responsibilities: str = Form(...),  # JSON string from form
+    requirements: str = Form(...),  # JSON string from form
     employment_type: Optional[str] = Form(None),
     schedule: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
@@ -173,14 +174,32 @@ async def receive_bitrix_form(
     company_website: Optional[str] = Form(None),
     promo_video: Optional[str] = Form(None),
 ):
+    import json
+    
+    # Parse JSON strings for responsibilities and requirements
+    try:
+        responsibilities_list = json.loads(responsibilities) if responsibilities else []
+        requirements_list = json.loads(requirements) if requirements else []
+    except json.JSONDecodeError:
+        # If JSON parsing fails, treat as single item lists
+        responsibilities_list = [responsibilities] if responsibilities else []
+        requirements_list = [requirements] if requirements else []
+    
+    # Handle file upload for company logo
+    company_logo_url = None
+    if company_logo:
+        # Here you would typically save the file and get a URL
+        # For now, we'll just store the filename
+        company_logo_url = company_logo.filename
+    
     form_data = {
         "vacancy_title": vacancy_title,
-        "company_logo": company_logo.filename if company_logo else None,
+        "company_logo": company_logo_url,
         "company_name": company_name,
         "platform": platform,
         "specialty": specialty,
-        "responsibilities": responsibilities,
-        "requirements": requirements,
+        "responsibilities": responsibilities_list,
+        "requirements": requirements_list,
         "employment_type": employment_type,
         "schedule": schedule,
         "location": location,
@@ -192,5 +211,10 @@ async def receive_bitrix_form(
         "company_website": company_website,
         "promo_video": promo_video,
     }
-    vacancy = await Vacancy.create(created_by_id="bitrix", status="pending", **form_data)
+    
+    vacancy = await Vacancy.create(
+        created_by_id=None,  # Bitrix не привязан к пользователю
+        status="pending",
+        **form_data
+    )
     return {"status": "ok", "received": form_data}

@@ -22,7 +22,7 @@ class Vacancy(models.Model):
     promo_video = fields.CharField(max_length=500, null=True)
     status = fields.CharField(max_length=20, default="pending")  # approve/pending/rejected
     is_active = fields.BooleanField(default=True)
-    created_by = fields.ForeignKeyField("models.User", related_name="vacancies")
+    created_by = fields.ForeignKeyField("models.User", related_name="vacancies", null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
 
 
