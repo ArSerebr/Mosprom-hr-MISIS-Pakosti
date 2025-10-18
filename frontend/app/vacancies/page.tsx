@@ -1,7 +1,9 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell/AppShell";
-import { useState } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
 import {
   Title,
   Button,
@@ -18,6 +20,8 @@ import {
   Textarea,
   NumberInput,
   Grid,
+  Loader,
+  Center,
 } from "@mantine/core";
 import {
   IconPlus,
@@ -34,110 +38,26 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { DateTimePicker } from "@mantine/dates";
 import { useRouter } from "next/navigation";
-
-interface Vacancy {
-  id: number;
-  title: string;
-  department: string;
-  location: string;
-  employmentType: string;
-  salary: string;
-  candidates: number;
-  status: "draft" | "pending" | "active" | "paused" | "closed";
-  description: string;
-  requirements: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  autoUnpublishDate?: Date | null;
-}
-
-const mockVacancies: Vacancy[] = [
-  {
-    id: 1,
-    title: "Senior Frontend Developer",
-    department: "IT",
-    location: "Москва",
-    employmentType: "Полная занятость",
-    salary: "200 000 - 300 000 ₽",
-    candidates: 23,
-    status: "active",
-    description: "Разработка современных веб-приложений",
-    requirements: "React, TypeScript, 5+ лет опыта",
-  },
-  {
-    id: 2,
-    title: "Product Manager",
-    department: "Продукт",
-    location: "Москва",
-    employmentType: "Полная занятость",
-    salary: "250 000 - 350 000 ₽",
-    candidates: 45,
-    status: "active",
-    description: "Управление продуктовой командой",
-    requirements: "Опыт в продуктовом менеджменте 3+ года",
-  },
-  {
-    id: 3,
-    title: "UX/UI Designer",
-    department: "Дизайн",
-    location: "Удаленно",
-    employmentType: "Полная занятость",
-    salary: "150 000 - 220 000 ₽",
-    candidates: 18,
-    status: "active",
-    description: "Проектирование пользовательских интерфейсов",
-    requirements: "Figma, опыт 2+ года",
-  },
-  {
-    id: 4,
-    title: "Backend Developer",
-    department: "IT",
-    location: "Москва",
-    employmentType: "Полная занятость",
-    salary: "180 000 - 280 000 ₽",
-    candidates: 31,
-    status: "paused",
-    description: "Разработка серверной части приложений",
-    requirements: "Python/FastAPI, PostgreSQL, 3+ года опыта",
-  },
-  {
-    id: 5,
-    title: "Data Analyst",
-    department: "Аналитика",
-    location: "Москва",
-    employmentType: "Полная занятость",
-    salary: "120 000 - 180 000 ₽",
-    candidates: 12,
-    status: "active",
-    description: "Анализ данных и построение отчетов",
-    requirements: "SQL, Python, Excel, опыт 2+ года",
-  },
-];
-
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    draft: "gray",
-    pending: "orange",
-    active: "green",
-    paused: "yellow",
-    closed: "gray",
-  };
-  return colors[status] || "gray";
-};
-
-const getStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    draft: "Черновик",
-    pending: "На модерации",
-    active: "Активна",
-    paused: "На паузе",
-    closed: "Закрыта",
-  };
-  return labels[status] || status;
-};
+import { 
+  getMyVacancies, 
+  createVacancy, 
+  updateVacancy, 
+  deleteVacancy,
+  Vacancy 
+} from "@/lib/api";
 
 export default function VacanciesPage() {
-  const [vacancies, setVacancies] = useState<Vacancy[]>(mockVacancies);
+  return (
+    <ProtectedRoute>
+      <VacanciesContent />
+    </ProtectedRoute>
+  );
+}
+
+function VacanciesContent() {
+  const { token } = useAuth();
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>("all");
   const [opened, { open, close }] = useDisclosure(false);
@@ -148,18 +68,44 @@ export default function VacanciesPage() {
 
   const router = useRouter();
 
+  // Загрузка вакансий при монтировании компонента
+  useEffect(() => {
+    loadVacancies();
+  }, []);
+
+  const loadVacancies = async () => {
+    try {
+      setLoading(true);
+      if (!token) {
+        throw new Error("Токен авторизации не найден");
+      }
+      const data = await getMyVacancies(token);
+      setVacancies(data);
+    } catch (error) {
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось загрузить вакансии",
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const form = useForm({
     initialValues: {
-      title: "",
-      department: "",
-      location: "",
-      employmentType: "",
-      salary: "",
-      description: "",
+      vacancy_title: "",
+      company_name: "",
+      platform: "",
+      specialty: "",
+      responsibilities: "",
       requirements: "",
-      contactEmail: "",
-      contactPhone: "",
-      autoUnpublishDate: null as Date | null,
+      employment_type: "",
+      schedule: "",
+      location: "",
+      salary: "",
+      extra_info: "",
+      company_website: "",
     },
   });
 
@@ -173,16 +119,18 @@ export default function VacanciesPage() {
     setEditMode(true);
     setSelectedVacancy(vacancy);
     form.setValues({
-      title: vacancy.title,
-      department: vacancy.department,
-      location: vacancy.location,
-      employmentType: vacancy.employmentType,
-      salary: vacancy.salary,
-      description: vacancy.description,
-      requirements: vacancy.requirements,
-      contactEmail: vacancy.contactEmail || "",
-      contactPhone: vacancy.contactPhone || "",
-      autoUnpublishDate: vacancy.autoUnpublishDate || null,
+      vacancy_title: vacancy.vacancy_title,
+      company_name: vacancy.company_name,
+      platform: vacancy.platform,
+      specialty: vacancy.specialty,
+      responsibilities: vacancy.responsibilities.join('\n'),
+      requirements: vacancy.requirements.join('\n'),
+      employment_type: vacancy.employment_type || "",
+      schedule: vacancy.schedule || "",
+      location: vacancy.location || "",
+      salary: vacancy.salary || "",
+      extra_info: vacancy.extra_info || "",
+      company_website: vacancy.company_website || "",
     });
     open();
   };
@@ -196,53 +144,107 @@ export default function VacanciesPage() {
     openView();
   };
 
-  const handleDelete = (id: number) => {
-    setVacancies(vacancies.filter((v) => v.id !== id));
-    notifications.show({
-      title: "Успешно",
-      message: "Вакансия удалена",
-      color: "green",
-    });
-  };
-
-  const handleSubmit = (values: typeof form.values) => {
-    if (editMode && selectedVacancy) {
-      setVacancies(
-        vacancies.map((v) =>
-          v.id === selectedVacancy.id ? { ...v, ...values } : v
-        )
-      );
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteVacancy(id);
+      setVacancies(vacancies.filter((v) => v.id !== id));
       notifications.show({
         title: "Успешно",
-        message: "Вакансия обновлена",
+        message: "Вакансия удалена",
         color: "green",
       });
-    } else {
-      const newVacancy: Vacancy = {
-        id: Math.max(...vacancies.map((v) => v.id)) + 1,
-        ...values,
-        candidates: 0,
-        status: "pending",
-        autoUnpublishDate: values.autoUnpublishDate,
-      };
-      setVacancies([...vacancies, newVacancy]);
+    } catch (error) {
       notifications.show({
-        title: "Успешно",
-        message: "Вакансия отправлена на модерацию",
-        color: "green",
+        title: "Ошибка",
+        message: "Не удалось удалить вакансию",
+        color: "red",
       });
     }
-    close();
+  };
+
+  const handleSubmit = async (values: typeof form.values) => {
+    try {
+      // Преобразуем строки в массивы для responsibilities и requirements
+      const processedValues = {
+        ...values,
+        responsibilities: typeof values.responsibilities === 'string' 
+          ? values.responsibilities.split('\n').filter(line => line.trim())
+          : values.responsibilities,
+        requirements: typeof values.requirements === 'string'
+          ? values.requirements.split('\n').filter(line => line.trim())
+          : values.requirements,
+      };
+
+      if (editMode && selectedVacancy) {
+        const updated = await updateVacancy(selectedVacancy.id, processedValues);
+        setVacancies(vacancies.map((v) => v.id === selectedVacancy.id ? updated : v));
+        notifications.show({
+          title: "Успешно",
+          message: "Вакансия обновлена",
+          color: "green",
+        });
+      } else {
+        const newVacancy = await createVacancy({
+          ...processedValues,
+          status: "pending"
+        });
+        setVacancies([...vacancies, newVacancy]);
+        notifications.show({
+          title: "Успешно",
+          message: "Вакансия отправлена на модерацию",
+          color: "green",
+        });
+      }
+      close();
+    } catch (error) {
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось сохранить вакансию",
+        color: "red",
+      });
+    }
   };
 
   const filteredVacancies = vacancies.filter((vacancy) => {
     const matchesSearch =
-      vacancy.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vacancy.department.toLowerCase().includes(searchQuery.toLowerCase());
+      vacancy.vacancy_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vacancy.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vacancy.specialty.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || vacancy.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: "orange",
+      approve: "green",
+      rejected: "red",
+    };
+    return colors[status] || "gray";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: "На модерации",
+      approve: "Одобрена",
+      rejected: "Отклонена",
+    };
+    return labels[status] || status;
+  };
+
+  if (loading) {
+    return (
+      <AppShell>
+        <Center h={400}>
+          <Stack align="center">
+            <Loader size="lg" />
+            <Text>Загрузка вакансий...</Text>
+          </Stack>
+        </Center>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -268,9 +270,8 @@ export default function VacanciesPage() {
               data={[
                 { value: "all", label: "Все" },
                 { value: "pending", label: "На модерации" },
-                { value: "active", label: "Активные" },
-                { value: "paused", label: "На паузе" },
-                { value: "closed", label: "Закрытые" },
+                { value: "approve", label: "Одобренные" },
+                { value: "rejected", label: "Отклоненные" },
               ]}
               value={statusFilter}
               onChange={setStatusFilter}
@@ -282,7 +283,8 @@ export default function VacanciesPage() {
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Название</Table.Th>
-                <Table.Th>Отдел</Table.Th>
+                <Table.Th>Компания</Table.Th>
+                <Table.Th>Специальность</Table.Th>
                 <Table.Th>Локация</Table.Th>
                 <Table.Th>Зарплата</Table.Th>
                 <Table.Th>Кандидаты</Table.Th>
@@ -294,9 +296,10 @@ export default function VacanciesPage() {
               {filteredVacancies.map((vacancy) => (
                 <Table.Tr key={vacancy.id}>
                   <Table.Td>
-                    <Text fw={500}>{vacancy.title}</Text>
+                    <Text fw={500}>{vacancy.vacancy_title}</Text>
                   </Table.Td>
-                  <Table.Td>{vacancy.department}</Table.Td>
+                  <Table.Td>{vacancy.company_name}</Table.Td>
+                  <Table.Td>{vacancy.specialty}</Table.Td>
                   <Table.Td>
                     <Group gap="xs">
                       <IconMapPin size={16} />
@@ -316,7 +319,7 @@ export default function VacanciesPage() {
                       leftSection={<IconUsers size={16} />}
                       onClick={() => handleViewResponses(vacancy.id)}
                     >
-                      {vacancy.candidates}
+                      {vacancy.applications?.length || 0}
                     </Button>
                   </Table.Td>
                   <Table.Td>
@@ -372,88 +375,98 @@ export default function VacanciesPage() {
               label="Название вакансии"
               placeholder="Frontend Developer"
               required
-              {...form.getInputProps("title")}
+              {...form.getInputProps("vacancy_title")}
             />
             <Grid>
               <Grid.Col span={6}>
                 <TextInput
-                  label="Отдел"
-                  placeholder="IT"
+                  label="Название компании"
+                  placeholder="Tech Company Inc."
                   required
-                  {...form.getInputProps("department")}
+                  {...form.getInputProps("company_name")}
                 />
               </Grid.Col>
               <Grid.Col span={6}>
                 <TextInput
-                  label="Локация"
-                  placeholder="Москва"
+                  label="Платформа"
+                  placeholder="hh.ru"
                   required
-                  {...form.getInputProps("location")}
+                  {...form.getInputProps("platform")}
                 />
               </Grid.Col>
             </Grid>
+            <TextInput
+              label="Специальность"
+              placeholder="Frontend Development"
+              required
+              {...form.getInputProps("specialty")}
+            />
             <Grid>
               <Grid.Col span={6}>
                 <Select
                   label="Тип занятости"
                   placeholder="Выберите тип"
-                  required
                   data={[
                     "Полная занятость",
                     "Частичная занятость",
                     "Стажировка",
                     "Удаленная работа",
                   ]}
-                  {...form.getInputProps("employmentType")}
+                  {...form.getInputProps("employment_type")}
+                />
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <TextInput
+                  label="График работы"
+                  placeholder="Полный день"
+                  {...form.getInputProps("schedule")}
+                />
+              </Grid.Col>
+            </Grid>
+            <Grid>
+              <Grid.Col span={6}>
+                <TextInput
+                  label="Локация"
+                  placeholder="Москва"
+                  {...form.getInputProps("location")}
                 />
               </Grid.Col>
               <Grid.Col span={6}>
                 <TextInput
                   label="Зарплата"
                   placeholder="100 000 - 150 000 ₽"
-                  required
                   {...form.getInputProps("salary")}
                 />
               </Grid.Col>
             </Grid>
             <Textarea
-              label="Описание"
-              placeholder="Опишите вакансию..."
-              required
+              label="Обязанности (по одному на строку)"
+              placeholder="Разработка веб-приложений&#10;Оптимизация производительности&#10;Работа в команде"
               minRows={3}
-              {...form.getInputProps("description")}
+              value={Array.isArray(form.values.responsibilities) 
+                ? form.values.responsibilities.join('\n') 
+                : form.values.responsibilities}
+              onChange={(e) => form.setFieldValue('responsibilities', e.currentTarget.value)}
             />
             <Textarea
-              label="Требования"
-              placeholder="Требования к кандидату..."
-              required
+              label="Требования (по одному на строку)"
+              placeholder="React, TypeScript&#10;5+ лет опыта&#10;Знание современных инструментов"
               minRows={3}
-              {...form.getInputProps("requirements")}
+              value={Array.isArray(form.values.requirements) 
+                ? form.values.requirements.join('\n') 
+                : form.values.requirements}
+              onChange={(e) => form.setFieldValue('requirements', e.currentTarget.value)}
             />
-            <Grid>
-              <Grid.Col span={6}>
-                <TextInput
-                  label="Email для откликов"
-                  placeholder="hr@company.ru"
-                  type="email"
-                  required
-                  {...form.getInputProps("contactEmail")}
-                />
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <TextInput
-                  label="Телефон для связи"
-                  placeholder="+7 (999) 123-45-67"
-                  required
-                  {...form.getInputProps("contactPhone")}
-                />
-              </Grid.Col>
-            </Grid>
-            <DateTimePicker
-              label="Дата и время автоснятия с публикации (опционально)"
-              placeholder="Выберите дату и время"
-              description="Вакансия автоматически снимется с публикации в указанное время"
-              {...form.getInputProps("autoUnpublishDate")}
+            <Textarea
+              label="Дополнительная информация"
+              placeholder="Дополнительная информация о вакансии..."
+              minRows={2}
+              {...form.getInputProps("extra_info")}
+            />
+            <TextInput
+              label="Сайт компании"
+              placeholder="https://company.com"
+              {...form.getInputProps("company_website")}
             />
             <Group justify="flex-end" mt="md">
               <Button variant="light" onClick={close}>
@@ -481,29 +494,49 @@ export default function VacanciesPage() {
                 Название
               </Text>
               <Text size="lg" fw={500}>
-                {selectedVacancy.title}
+                {selectedVacancy.vacancy_title}
               </Text>
             </div>
             <Grid>
               <Grid.Col span={6}>
                 <Text size="sm" c="dimmed">
-                  Отдел
+                  Компания
                 </Text>
-                <Text>{selectedVacancy.department}</Text>
+                <Text>{selectedVacancy.company_name}</Text>
               </Grid.Col>
               <Grid.Col span={6}>
                 <Text size="sm" c="dimmed">
-                  Локация
+                  Платформа
                 </Text>
-                <Text>{selectedVacancy.location}</Text>
+                <Text>{selectedVacancy.platform}</Text>
               </Grid.Col>
             </Grid>
+            <div>
+              <Text size="sm" c="dimmed">
+                Специальность
+              </Text>
+              <Text>{selectedVacancy.specialty}</Text>
+            </div>
             <Grid>
               <Grid.Col span={6}>
                 <Text size="sm" c="dimmed">
                   Тип занятости
                 </Text>
-                <Text>{selectedVacancy.employmentType}</Text>
+                <Text>{selectedVacancy.employment_type}</Text>
+              </Grid.Col>
+              <Grid.Col span={6}>
+                <Text size="sm" c="dimmed">
+                  График работы
+                </Text>
+                <Text>{selectedVacancy.schedule}</Text>
+              </Grid.Col>
+            </Grid>
+            <Grid>
+              <Grid.Col span={6}>
+                <Text size="sm" c="dimmed">
+                  Локация
+                </Text>
+                <Text>{selectedVacancy.location}</Text>
               </Grid.Col>
               <Grid.Col span={6}>
                 <Text size="sm" c="dimmed">
@@ -516,7 +549,7 @@ export default function VacanciesPage() {
               <Text size="sm" c="dimmed">
                 Кандидатов
               </Text>
-              <Text>{selectedVacancy.candidates}</Text>
+              <Text>{selectedVacancy.applications?.length || 0}</Text>
             </div>
             <div>
               <Text size="sm" c="dimmed">
@@ -531,16 +564,44 @@ export default function VacanciesPage() {
             </div>
             <div>
               <Text size="sm" c="dimmed">
-                Описание
+                Обязанности
               </Text>
-              <Text>{selectedVacancy.description}</Text>
+              <ul>
+                {selectedVacancy.responsibilities.map((resp, index) => (
+                  <li key={index}>{resp}</li>
+                ))}
+              </ul>
             </div>
             <div>
               <Text size="sm" c="dimmed">
                 Требования
               </Text>
-              <Text>{selectedVacancy.requirements}</Text>
+              <ul>
+                {selectedVacancy.requirements.map((req, index) => (
+                  <li key={index}>{req}</li>
+                ))}
+              </ul>
             </div>
+            {selectedVacancy.extra_info && (
+              <div>
+                <Text size="sm" c="dimmed">
+                  Дополнительная информация
+                </Text>
+                <Text>{selectedVacancy.extra_info}</Text>
+              </div>
+            )}
+            {selectedVacancy.company_website && (
+              <div>
+                <Text size="sm" c="dimmed">
+                  Сайт компании
+                </Text>
+                <Text>
+                  <a href={selectedVacancy.company_website} target="_blank" rel="noopener noreferrer">
+                    {selectedVacancy.company_website}
+                  </a>
+                </Text>
+              </div>
+            )}
           </Stack>
         )}
       </Modal>

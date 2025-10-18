@@ -1,27 +1,63 @@
 /**
- * Пример API клиента для интеграции с FastAPI backend
- *
- * Использование:
- * 1. Переименуйте этот файл в api.ts
- * 2. Обновите API_URL на адрес вашего backend
- * 3. Импортируйте функции в компонентах
- * 4. Замените моковые данные на эти функции
+ * API клиент для интеграции с FastAPI backend
+ * 
+ * Этот файл содержит все функции для работы с API вакансий и откликов
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_URL = typeof window !== 'undefined' 
+  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+  : "http://localhost:8000/api";
+
+// Типы для авторизации
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'hr' | 'university';
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name: string;
+  role: 'admin' | 'hr' | 'university';
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
 
 // Типы данных (совпадают с вашими моделями)
 export interface Vacancy {
   id: number;
-  title: string;
-  department: string;
-  location: string;
-  employmentType: string;
-  salary: string;
-  candidates: number;
-  status: "active" | "paused" | "closed";
-  description: string;
-  requirements: string;
+  vacancy_title: string;
+  company_logo?: string;
+  company_name: string;
+  platform: string;
+  specialty: string;
+  responsibilities: string[];
+  requirements: string[];
+  employment_type?: string;
+  schedule?: string;
+  location?: string;
+  location_yandex_link?: string;
+  probation?: string;
+  salary?: string;
+  extra_info?: string;
+  link_text?: string;
+  company_website?: string;
+  promo_video?: string;
+  status: "pending" | "approve" | "rejected";
+  is_active: boolean;
+  created_by?: number;
+  created_at: string;
+  applications?: Application[]; // Добавляем поле для откликов
 }
 
 export interface Internship {
@@ -38,17 +74,24 @@ export interface Internship {
   requirements: string;
 }
 
-export interface Candidate {
+export interface Application {
   id: number;
-  name: string;
-  email: string;
-  phone: string;
-  position: string;
-  experience: string;
-  skills: string[];
-  status: "new" | "interview" | "test-task" | "offer" | "accepted" | "rejected";
-  source: string;
-  notes: string;
+  vacancy: number; // ID вакансии
+  vacancy_data?: Vacancy; // Полная информация о вакансии
+  applicant_name: string;
+  applicant_email: string;
+  applicant_university: string;
+  message?: string;
+  status: "pending" | "approve" | "rejected";
+  created_at: string;
+}
+
+export interface ApplicationCreate {
+  vacancy_id: number;
+  applicant_name: string;
+  applicant_email: string;
+  applicant_university: string;
+  message?: string;
 }
 
 // Утилита для обработки ошибок
@@ -72,7 +115,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
  * Получить список всех вакансий
  */
 export async function getVacancies(): Promise<Vacancy[]> {
-  const response = await fetch(`${API_URL}/vacancies`);
+  const response = await fetch(`${API_URL}/vacancies/read`);
   return handleResponse<Vacancy[]>(response);
 }
 
@@ -85,12 +128,25 @@ export async function getVacancy(id: number): Promise<Vacancy> {
 }
 
 /**
+ * Получить вакансии пользователя
+ */
+export async function getMyVacancies(token: string): Promise<Vacancy[]> {
+  const response = await fetch(`${API_URL}/vacancies/`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return handleResponse<Vacancy[]>(response);
+}
+
+/**
  * Создать новую вакансию
  */
 export async function createVacancy(
-  data: Omit<Vacancy, "id" | "candidates">
+  data: Omit<Vacancy, "id" | "created_at" | "is_active">
 ): Promise<Vacancy> {
-  const response = await fetch(`${API_URL}/vacancies`, {
+  const response = await fetch(`${API_URL}/vacancies/create`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -126,168 +182,105 @@ export async function deleteVacancy(id: number): Promise<void> {
 }
 
 // ============================================
-// СТАЖИРОВКИ API
+// ОТКЛИКИ API
 // ============================================
 
 /**
- * Получить список всех стажировок
+ * Получить все отклики на вакансии пользователя
  */
-export async function getInternships(): Promise<Internship[]> {
-  const response = await fetch(`${API_URL}/internships`);
-  return handleResponse<Internship[]>(response);
+export async function getMyApplications(): Promise<Application[]> {
+  const response = await fetch(`${API_URL}/vacancies/my_vacancies`);
+  return handleResponse<Application[]>(response);
 }
 
 /**
- * Получить стажировку по ID
+ * Получить все отклики (для админа)
  */
-export async function getInternship(id: number): Promise<Internship> {
-  const response = await fetch(`${API_URL}/internships/${id}`);
-  return handleResponse<Internship>(response);
+export async function getAllApplications(): Promise<Application[]> {
+  const response = await fetch(`${API_URL}/vacancies/admin/applications`);
+  return handleResponse<Application[]>(response);
 }
 
 /**
- * Создать новую стажировку
+ * Создать отклик на вакансию
  */
-export async function createInternship(
-  data: Omit<Internship, "id" | "applicants">
-): Promise<Internship> {
-  const response = await fetch(`${API_URL}/internships`, {
+export async function createApplication(data: ApplicationCreate): Promise<Application> {
+  const response = await fetch(`${API_URL}/vacancies/applications`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return handleResponse<Internship>(response);
+  return handleResponse<Application>(response);
 }
 
 /**
- * Обновить стажировку
+ * Обновить статус отклика
  */
-export async function updateInternship(
+export async function updateApplicationStatus(
   id: number,
-  data: Partial<Internship>
-): Promise<Internship> {
-  const response = await fetch(`${API_URL}/internships/${id}`, {
+  status: "pending" | "approve" | "rejected"
+): Promise<Application> {
+  const response = await fetch(`${API_URL}/vacancies/applications/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ status }),
   });
-  return handleResponse<Internship>(response);
-}
-
-/**
- * Удалить стажировку
- */
-export async function deleteInternship(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/internships/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to delete internship: ${response.statusText}`);
-  }
+  return handleResponse<Application>(response);
 }
 
 // ============================================
-// КАНДИДАТЫ API
+// АУТЕНТИФИКАЦИЯ
 // ============================================
-
-/**
- * Получить список всех кандидатов
- */
-export async function getCandidates(): Promise<Candidate[]> {
-  const response = await fetch(`${API_URL}/candidates`);
-  return handleResponse<Candidate[]>(response);
-}
-
-/**
- * Получить кандидата по ID
- */
-export async function getCandidate(id: number): Promise<Candidate> {
-  const response = await fetch(`${API_URL}/candidates/${id}`);
-  return handleResponse<Candidate>(response);
-}
-
-/**
- * Создать нового кандидата
- */
-export async function createCandidate(
-  data: Omit<Candidate, "id">
-): Promise<Candidate> {
-  const response = await fetch(`${API_URL}/candidates`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return handleResponse<Candidate>(response);
-}
-
-/**
- * Обновить кандидата
- */
-export async function updateCandidate(
-  id: number,
-  data: Partial<Candidate>
-): Promise<Candidate> {
-  const response = await fetch(`${API_URL}/candidates/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return handleResponse<Candidate>(response);
-}
-
-/**
- * Удалить кандидата
- */
-export async function deleteCandidate(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/candidates/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to delete candidate: ${response.statusText}`);
-  }
-}
-
-// ============================================
-// АУТЕНТИФИКАЦИЯ (опционально)
-// ============================================
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  access_token: string;
-  token_type: string;
-  user: {
-    id: number;
-    email: string;
-    name: string;
-  };
-}
 
 /**
  * Войти в систему
  */
-export async function login(data: LoginData): Promise<AuthResponse> {
+export async function loginUser(credentials: LoginRequest): Promise<TokenResponse> {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(credentials),
   });
-  return handleResponse<AuthResponse>(response);
+  return handleResponse<TokenResponse>(response);
 }
 
 /**
- * Выйти из системы
+ * Зарегистрировать пользователя
  */
-export async function logout(): Promise<void> {
-  const response = await fetch(`${API_URL}/auth/logout`, {
+export async function registerUser(userData: RegisterRequest): Promise<User> {
+  const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
   });
-  if (!response.ok) {
-    throw new Error("Logout failed");
-  }
+  return handleResponse<User>(response);
+}
+
+/**
+ * Получить текущего пользователя
+ */
+export async function getCurrentUser(token: string): Promise<User> {
+  const response = await fetch(`${API_URL}/auth/me`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return handleResponse<User>(response);
+}
+
+/**
+ * Создать авторизованный запрос
+ */
+export function createAuthenticatedRequest(token: string, url: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
 }
 
 // ============================================

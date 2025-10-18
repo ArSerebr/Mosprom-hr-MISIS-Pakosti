@@ -1,6 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell/AppShell";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import {
   Grid,
   Paper,
@@ -135,9 +136,10 @@ const getStatusLabel = (status: string) => {
 
 export default function DashboardPage() {
   return (
-    <AppShell>
-      <Stack gap="lg">
-        <Title order={1}>Дашборд</Title>
+    <ProtectedRoute>
+      <AppShell>
+        <Stack gap="lg">
+          <Title order={1}>Дашборд</Title>
 
         {/* Статистика */}
         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="lg">
@@ -266,7 +268,8 @@ export default function DashboardPage() {
             </Card>
           </Grid.Col>
         </Grid>
-      </Stack>
-    </AppShell>
+        </Stack>
+      </AppShell>
+    </ProtectedRoute>
   );
 }

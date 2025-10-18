@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from tortoise import Tortoise
 from auth.router import router as auth_router
 from vacancies.router import router as vacancies_router
@@ -15,6 +16,17 @@ async def lifespan(app_instance):
 
 
 app = FastAPI(title="HR Application", lifespan=lifespan)
-app.include_router(auth_router, prefix="/auth")
-app.include_router(vacancies_router, prefix="")
-app.include_router(internship_router, prefix="")
+
+# Настройка CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://frontend:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Подключение маршрутов с правильными префиксами
+app.include_router(auth_router, prefix="/api/auth")
+app.include_router(vacancies_router, prefix="/api/vacancies")
+app.include_router(internship_router, prefix="/api")

@@ -29,6 +29,7 @@ import {
 } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -47,6 +48,20 @@ export function AppShell({ children }: AppShellProps) {
   const [opened, { toggle }] = useDisclosure();
   const pathname = usePathname();
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { user, logout } = useAuth();
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Администратор';
+      case 'hr': return 'HR-менеджер';
+      case 'university': return 'Представитель университета';
+      default: return 'Пользователь';
+    }
+  };
+
+  const getUserInitials = (name: string) => {
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <MantineAppShell
@@ -93,21 +108,25 @@ export function AppShell({ children }: AppShellProps) {
               <Menu.Target>
                 <ActionIcon variant="default" size="lg">
                   <Avatar size="sm" radius="xl" color="blue">
-                    HR
+                    {user ? getUserInitials(user.name) : 'U'}
                   </Avatar>
                 </ActionIcon>
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Label>HR Менеджер</Menu.Label>
+                <Menu.Label>{user ? getRoleLabel(user.role) : 'Пользователь'}</Menu.Label>
                 <Menu.Item leftSection={<IconUser size={14} />}>
-                  Профиль
+                  {user?.name || 'Пользователь'}
                 </Menu.Item>
                 <Menu.Item leftSection={<IconSettings size={14} />}>
                   Настройки
                 </Menu.Item>
                 <Menu.Divider />
-                <Menu.Item color="red" leftSection={<IconLogout size={14} />}>
+                <Menu.Item 
+                  color="red" 
+                  leftSection={<IconLogout size={14} />}
+                  onClick={logout}
+                >
                   Выйти
                 </Menu.Item>
               </Menu.Dropdown>

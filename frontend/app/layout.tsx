@@ -7,6 +7,7 @@ import "./globals.css";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { theme } from "./theme";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata = {
   title: "HR Management System",
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <MantineProvider theme={theme}>
           <Notifications position="top-right" />
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </MantineProvider>
       </body>
     </html>

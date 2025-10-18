@@ -15,7 +15,7 @@ from vacancies.schemas import (
 )
 
 
-router = APIRouter(prefix="/vacancies", tags=["vacancies"])
+router = APIRouter(tags=["vacancies"])
 
 
 @router.get("/read", response_model=list[Vacancy_Pydantic])
@@ -97,7 +97,7 @@ async def create_application(application_data: ApplicationCreate):
     return await Application_Pydantic.from_tortoise_orm(application)
 
 
-@router.get("/vacancies/", response_model=list[Vacancy_Pydantic])
+@router.get("/", response_model=list[Vacancy_Pydantic])
 async def get_my_vacancies(user: User = Depends(get_current_user)):
     """
     get реквест, получает вакансии, созданные данным пользователем

@@ -13,44 +13,39 @@ export interface User {
 
 export interface Vacancy {
   id: number;
-  title: string;
-  company: string;
-  department: string;
-  location: string;
-  employmentType: string;
-  salary: string;
-  description: string;
-  requirements: string;
-  contactEmail: string;
-  contactPhone: string;
-  status:
-    | "draft"
-    | "pending"
-    | "approved"
-    | "rejected"
-    | "published"
-    | "archived";
-  autoUnpublishDate?: string;
-  createdAt: string;
-  publishedAt?: string;
-  hrId: number;
-  responsesCount: number;
-  moderatorComment?: string;
+  vacancy_title: string;
+  company_logo?: string;
+  company_name: string;
+  platform: string;
+  specialty: string;
+  responsibilities: string[];
+  requirements: string[];
+  employment_type?: string;
+  schedule?: string;
+  location?: string;
+  location_yandex_link?: string;
+  probation?: string;
+  salary?: string;
+  extra_info?: string;
+  link_text?: string;
+  company_website?: string;
+  promo_video?: string;
+  status: "pending" | "approve" | "rejected";
+  is_active: boolean;
+  created_by?: number;
+  created_at: string;
 }
 
-export interface Response {
+export interface Application {
   id: number;
-  vacancyId: number;
-  vacancy?: Vacancy; // Полная информация о вакансии
-  candidateId: number;
-  candidateName: string;
-  candidateEmail: string;
-  candidatePhone: string;
-  resumeUrl?: string;
-  resumeData?: CandidateProfile;
-  status: "new" | "viewed" | "interview" | "rejected" | "accepted";
-  createdAt: string;
-  coverLetter?: string;
+  vacancy: number; // ID вакансии
+  vacancy_data?: Vacancy; // Полная информация о вакансии
+  applicant_name: string;
+  applicant_email: string;
+  applicant_university: string;
+  message?: string;
+  status: "pending" | "approve" | "rejected";
+  created_at: string;
 }
 
 export interface CandidateProfile {

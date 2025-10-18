@@ -1,7 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell/AppShell";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Stack,
   Title,
@@ -19,6 +19,8 @@ import {
   ActionIcon,
   SimpleGrid,
   ThemeIcon,
+  Loader,
+  Center,
 } from "@mantine/core";
 import {
   IconArrowLeft,
@@ -34,108 +36,115 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import Link from "next/link";
-
-const mockResponses = [
-  {
-    id: 1,
-    candidateName: "Алексей Иванов",
-    candidateEmail: "alex.ivanov@email.com",
-    candidatePhone: "+7 (999) 123-45-67",
-    resumeUrl: "/resumes/alexivanov.pdf",
-    status: "new",
-    createdAt: "2025-10-17 10:30",
-    resumeData: {
-      position: "Frontend Developer",
-      experience: "5 лет",
-      education: "МГУ, Прикладная математика",
-      skills: ["React", "TypeScript", "Next.js", "CSS"],
-      about:
-        "Опытный frontend разработчик с 5-летним стажем. Специализируюсь на React и TypeScript.",
-    },
-  },
-  {
-    id: 2,
-    candidateName: "Мария Петрова",
-    candidateEmail: "maria.petrova@email.com",
-    candidatePhone: "+7 (999) 234-56-78",
-    resumeUrl: "/resumes/mariapetrova.pdf",
-    status: "viewed",
-    createdAt: "2025-10-16 15:20",
-    resumeData: {
-      position: "Frontend Developer",
-      experience: "3 года",
-      education: "МФТИ, Информатика",
-      skills: ["React", "JavaScript", "HTML", "CSS", "Git"],
-      about: "Увлеченный разработчик с желанием расти и развиваться.",
-    },
-  },
-  {
-    id: 3,
-    candidateName: "Дмитрий Сидоров",
-    candidateEmail: "dmitry.sidorov@email.com",
-    candidatePhone: "+7 (999) 345-67-89",
-    status: "interview",
-    createdAt: "2025-10-15 11:45",
-    coverLetter:
-      "Здравствуйте! Заинтересован в вашей вакансии, имею релевантный опыт...",
-  },
-];
+import { useParams } from "next/navigation";
+import { 
+  getVacancy, 
+  getAllApplications, 
+  updateApplicationStatus,
+  Application,
+  Vacancy 
+} from "@/lib/api";
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    new: "blue",
-    viewed: "cyan",
-    interview: "orange",
+    pending: "orange",
+    approve: "green",
     rejected: "red",
-    accepted: "green",
   };
   return colors[status] || "gray";
 };
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    new: "Новый",
-    viewed: "Просмотрен",
-    interview: "Интервью",
-    rejected: "Отказ",
-    accepted: "Принят",
+    pending: "На рассмотрении",
+    approve: "Одобрено",
+    rejected: "Отклонено",
   };
   return labels[status] || status;
 };
 
 export default function VacancyResponsesPage() {
-  const [responses, setResponses] = useState(mockResponses);
-  const [selectedResponse, setSelectedResponse] = useState<any>(null);
+  const params = useParams();
+  const vacancyId = parseInt(params.id as string);
+  
+  const [responses, setResponses] = useState<Application[]>([]);
+  const [vacancy, setVacancy] = useState<Vacancy | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedResponse, setSelectedResponse] = useState<Application | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
 
-  const handleView = (response: any) => {
-    setSelectedResponse(response);
-    if (response.status === "new") {
-      setResponses(
-        responses.map((r) =>
-          r.id === response.id ? { ...r, status: "viewed" } : r
-        )
-      );
+  // Загрузка данных при монтировании компонента
+  useEffect(() => {
+    loadData();
+  }, [vacancyId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [vacancyData, applicationsData] = await Promise.all([
+        getVacancy(vacancyId),
+        getAllApplications()
+      ]);
+      
+      setVacancy(vacancyData);
+      // Фильтруем отклики для конкретной вакансии
+      const vacancyResponses = applicationsData.filter(app => app.vacancy === vacancyId);
+      setResponses(vacancyResponses);
+    } catch (error) {
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось загрузить данные",
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleView = (response: Application) => {
+    setSelectedResponse(response);
     open();
   };
 
-  const handleStatusChange = (id: number, newStatus: string) => {
-    setResponses(
-      responses.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
-    notifications.show({
-      title: "Успешно",
-      message: "Статус отклика обновлен",
-      color: "green",
-    });
+  const handleStatusChange = async (id: number, newStatus: "pending" | "approve" | "rejected") => {
+    try {
+      await updateApplicationStatus(id, newStatus);
+      setResponses(
+        responses.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+      );
+      notifications.show({
+        title: "Успешно",
+        message: "Статус отклика обновлен",
+        color: "green",
+      });
+    } catch (error) {
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось обновить статус",
+        color: "red",
+      });
+    }
   };
 
   const stats = {
     total: responses.length,
-    new: responses.filter((r) => r.status === "new").length,
-    interview: responses.filter((r) => r.status === "interview").length,
+    pending: responses.filter((r) => r.status === "pending").length,
+    approved: responses.filter((r) => r.status === "approve").length,
+    rejected: responses.filter((r) => r.status === "rejected").length,
   };
+
+  if (loading) {
+    return (
+      <AppShell>
+        <Center h={400}>
+          <Stack align="center">
+            <Loader size="lg" />
+            <Text>Загрузка откликов...</Text>
+          </Stack>
+        </Center>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -147,7 +156,7 @@ export default function VacancyResponsesPage() {
           <div>
             <Title order={1}>Отклики на вакансию</Title>
             <Text c="dimmed" size="sm">
-              Senior Frontend Developer
+              {vacancy?.vacancy_title || "Загрузка..."}
             </Text>
           </div>
         </Group>
@@ -176,10 +185,10 @@ export default function VacancyResponsesPage() {
               </ThemeIcon>
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  Новых
+                  На рассмотрении
                 </Text>
                 <Text size="xl" fw={700}>
-                  {stats.new}
+                  {stats.pending}
                 </Text>
               </div>
             </Group>
@@ -191,10 +200,10 @@ export default function VacancyResponsesPage() {
               </ThemeIcon>
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  На интервью
+                  Одобрено
                 </Text>
                 <Text size="xl" fw={700}>
-                  {stats.interview}
+                  {stats.approved}
                 </Text>
               </div>
             </Group>
@@ -219,16 +228,16 @@ export default function VacancyResponsesPage() {
                   <Table.Td>
                     <Group gap="sm">
                       <Avatar color="blue" radius="xl">
-                        {response.candidateName
+                        {response.applicant_name
                           .split(" ")
                           .map((n) => n[0])
                           .join("")}
                       </Avatar>
                       <div>
-                        <Text fw={500}>{response.candidateName}</Text>
-                        {response.status === "new" && (
-                          <Badge size="xs" color="blue" variant="dot">
-                            Новый
+                        <Text fw={500}>{response.applicant_name}</Text>
+                        {response.status === "pending" && (
+                          <Badge size="xs" color="orange" variant="dot">
+                            На рассмотрении
                           </Badge>
                         )}
                       </div>
@@ -240,35 +249,31 @@ export default function VacancyResponsesPage() {
                         <IconMail size={14} />
                         <Anchor
                           size="sm"
-                          href={`mailto:${response.candidateEmail}`}
+                          href={`mailto:${response.applicant_email}`}
                         >
-                          {response.candidateEmail}
+                          {response.applicant_email}
                         </Anchor>
                       </Group>
-                      {response.candidatePhone && (
-                        <Group gap="xs">
-                          <IconPhone size={14} />
-                          <Text size="sm">{response.candidatePhone}</Text>
-                        </Group>
-                      )}
+                      <Group gap="xs">
+                        <IconUser size={14} />
+                        <Text size="sm">{response.applicant_university}</Text>
+                      </Group>
                     </Stack>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{response.createdAt}</Text>
+                    <Text size="sm">{new Date(response.created_at).toLocaleDateString()}</Text>
                   </Table.Td>
                   <Table.Td>
                     <Select
                       size="xs"
                       data={[
-                        { value: "new", label: "Новый" },
-                        { value: "viewed", label: "Просмотрен" },
-                        { value: "interview", label: "Интервью" },
-                        { value: "accepted", label: "Принят" },
-                        { value: "rejected", label: "Отказ" },
+                        { value: "pending", label: "На рассмотрении" },
+                        { value: "approve", label: "Одобрено" },
+                        { value: "rejected", label: "Отклонено" },
                       ]}
                       value={response.status}
                       onChange={(value) =>
-                        handleStatusChange(response.id, value!)
+                        handleStatusChange(response.id, value as "pending" | "approve" | "rejected")
                       }
                     />
                   </Table.Td>
@@ -295,14 +300,14 @@ export default function VacancyResponsesPage() {
           <Stack>
             <Group>
               <Avatar size="xl" color="blue" radius="xl">
-                {selectedResponse.candidateName
+                {selectedResponse.applicant_name
                   .split(" ")
                   .map((n: string) => n[0])
                   .join("")}
               </Avatar>
               <div>
                 <Text size="xl" fw={700}>
-                  {selectedResponse.candidateName}
+                  {selectedResponse.applicant_name}
                 </Text>
                 <Badge
                   color={getStatusColor(selectedResponse.status)}
@@ -317,83 +322,24 @@ export default function VacancyResponsesPage() {
               <Stack gap="md">
                 <Group gap="xs">
                   <IconMail size={18} />
-                  <Anchor href={`mailto:${selectedResponse.candidateEmail}`}>
-                    {selectedResponse.candidateEmail}
+                  <Anchor href={`mailto:${selectedResponse.applicant_email}`}>
+                    {selectedResponse.applicant_email}
                   </Anchor>
                 </Group>
-                {selectedResponse.candidatePhone && (
-                  <Group gap="xs">
-                    <IconPhone size={18} />
-                    <Text>{selectedResponse.candidatePhone}</Text>
-                  </Group>
-                )}
+                <Group gap="xs">
+                  <IconUser size={18} />
+                  <Text>{selectedResponse.applicant_university}</Text>
+                </Group>
               </Stack>
             </Paper>
 
-            {selectedResponse.resumeUrl && (
-              <Button
-                leftSection={<IconFileText size={18} />}
-                variant="light"
-                component="a"
-                href={selectedResponse.resumeUrl}
-                target="_blank"
-              >
-                Скачать резюме (PDF)
-              </Button>
-            )}
-
-            {selectedResponse.resumeData && (
-              <Paper p="md" radius="md" withBorder>
-                <Stack gap="md">
-                  <div>
-                    <Text size="sm" c="dimmed" mb={4}>
-                      Желаемая позиция
-                    </Text>
-                    <Text fw={500}>{selectedResponse.resumeData.position}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed" mb={4}>
-                      Опыт работы
-                    </Text>
-                    <Text>{selectedResponse.resumeData.experience}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed" mb={4}>
-                      Образование
-                    </Text>
-                    <Text>{selectedResponse.resumeData.education}</Text>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed" mb={8}>
-                      Навыки
-                    </Text>
-                    <Group gap="xs">
-                      {selectedResponse.resumeData.skills.map(
-                        (skill: string, index: number) => (
-                          <Badge key={index} variant="light">
-                            {skill}
-                          </Badge>
-                        )
-                      )}
-                    </Group>
-                  </div>
-                  <div>
-                    <Text size="sm" c="dimmed" mb={4}>
-                      О себе
-                    </Text>
-                    <Text>{selectedResponse.resumeData.about}</Text>
-                  </div>
-                </Stack>
-              </Paper>
-            )}
-
-            {selectedResponse.coverLetter && (
+            {selectedResponse.message && (
               <div>
                 <Text size="sm" c="dimmed" mb={4}>
-                  Сопроводительное письмо
+                  Сообщение кандидата
                 </Text>
                 <Paper p="md" radius="md" withBorder>
-                  <Text>{selectedResponse.coverLetter}</Text>
+                  <Text>{selectedResponse.message}</Text>
                 </Paper>
               </div>
             )}
