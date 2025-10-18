@@ -248,7 +248,13 @@ export default function BoardPage() {
   // Фильтруем кандидатов по выбранным фильтрам
   const filteredCandidates = candidates.filter(candidate => {
     const matchesCompany = !selectedCompany || candidate.company === selectedCompany;
-    const matchesVacancy = !selectedVacancy || candidate.position === selectedVacancy;
+    // Если выбрана компания, то должность фильтрует только внутри этой компании
+    // Если компания не выбрана, то должность фильтрует по всем компаниям
+    const matchesVacancy = !selectedVacancy || 
+      (selectedCompany ? 
+        (candidate.company === selectedCompany && candidate.position === selectedVacancy) : 
+        candidate.position === selectedVacancy);
+
     return matchesCompany && matchesVacancy;
   });
 
@@ -443,7 +449,7 @@ export default function BoardPage() {
         <nav style={{ 
           position: 'fixed', 
           left: '0', 
-          top: '60px', 
+          top: '120px', 
           bottom: '0', 
           width: '320px', 
           overflowY: 'auto', 
@@ -476,7 +482,16 @@ export default function BoardPage() {
                         transition: 'all 0.2s ease-in-out',
                         marginBottom: '4px'
                       }}
-                      onClick={() => toggleCompany(company)}
+                      onClick={() => {
+                        toggleCompany(company);
+                        // Если выбираем компанию, сбрасываем должность, если она не существует в этой компании
+                        if (!isExpanded) {
+                          const companyPositions = Array.from(new Set(candidates.filter(c => c.company === company).map(c => c.position)));
+                          if (selectedVacancy && !companyPositions.includes(selectedVacancy)) {
+                            setSelectedVacancy(null);
+                          }
+                        }
+                      }}
                     >
                       <Group justify="space-between">
                         <Group gap="xs">
@@ -515,7 +530,18 @@ export default function BoardPage() {
                               transition: 'all 0.2s ease-in-out',
                               borderLeft: selectedVacancy === position ? '3px solid #22c55e' : '3px solid transparent'
                             }}
-                            onClick={() => setSelectedVacancy(selectedVacancy === position ? null : position)}
+                            onClick={() => {
+                              // Если должность уже выбрана, снимаем выбор
+                              if (selectedVacancy === position) {
+                                setSelectedVacancy(null);
+                              } else {
+                                // Выбираем должность и автоматически выбираем компанию, если она не выбрана
+                                setSelectedVacancy(position);
+                                if (!selectedCompany) {
+                                  setSelectedCompany(company);
+                                }
+                              }
+                            }}
                           >
                             <Text size="xs" fw={selectedVacancy === position ? 500 : 400}>
                               {position}
