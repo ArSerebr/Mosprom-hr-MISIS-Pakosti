@@ -386,62 +386,61 @@ export default function BoardPage() {
 
   return (
     <Container size="xl" py="md">
+      {/* Заголовок с фильтрами и кнопкой на одной строке */}
       <Group justify="space-between" mb="xl">
-        <Title order={1}>Доска кандидатов</Title>
+        <Group gap="md">
+          {/* Активные фильтры */}
+          {(selectedCompany || selectedVacancy) && (
+            <Group gap="sm">
+              <Text size="sm" fw={500}>Активные фильтры:</Text>
+              {selectedCompany && (
+                <Badge 
+                  color="blue" 
+                  variant="light" 
+                  rightSection={
+                    <IconX 
+                      size={12} 
+                      style={{ cursor: 'pointer' }} 
+                      onClick={() => setSelectedCompany(null)}
+                    />
+                  }
+                >
+                  Компания: {selectedCompany}
+                </Badge>
+              )}
+              {selectedVacancy && (
+                <Badge 
+                  color="green" 
+                  variant="light" 
+                  rightSection={
+                    <IconX 
+                      size={12} 
+                      style={{ cursor: 'pointer' }} 
+                      onClick={() => setSelectedVacancy(null)}
+                    />
+                  }
+                >
+                  Должность: {selectedVacancy}
+                </Badge>
+              )}
+              <Button 
+                variant="subtle" 
+                size="xs" 
+                color="gray"
+                onClick={() => {
+                  setSelectedCompany(null);
+                  setSelectedVacancy(null);
+                }}
+              >
+                Очистить все
+              </Button>
+            </Group>
+          )}
+        </Group>
         <Button leftSection={<IconPlus size={16} />} onClick={open} color="blue">
           Добавить кандидата
         </Button>
       </Group>
-
-      {/* Активные фильтры */}
-      {(selectedCompany || selectedVacancy) && (
-        <Paper p="sm" radius="md" withBorder mb="md" style={{ backgroundColor: '#f8f9fa' }}>
-          <Group gap="sm">
-            <Text size="sm" fw={500}>Активные фильтры:</Text>
-            {selectedCompany && (
-              <Badge 
-                color="blue" 
-                variant="light" 
-                rightSection={
-                  <IconX 
-                    size={12} 
-                    style={{ cursor: 'pointer' }} 
-                    onClick={() => setSelectedCompany(null)}
-                  />
-                }
-              >
-                Компания: {selectedCompany}
-              </Badge>
-            )}
-            {selectedVacancy && (
-              <Badge 
-                color="green" 
-                variant="light" 
-                rightSection={
-                  <IconX 
-                    size={12} 
-                    style={{ cursor: 'pointer' }} 
-                    onClick={() => setSelectedVacancy(null)}
-                  />
-                }
-              >
-                Должность: {selectedVacancy}
-              </Badge>
-            )}
-            <Button 
-              variant="subtle" 
-              size="xs" 
-              color="gray"
-              onClick={() => {
-                setSelectedCompany(null);
-                setSelectedVacancy(null);
-              }}
-            >
-              Очистить все
-            </Button>
-          </Group>
-        </Paper>
-      )}
 
       {/* Основной контент с боковой панелью */}
       <div style={{ display: 'flex', gap: '16px' }}>
@@ -449,11 +448,11 @@ export default function BoardPage() {
         <nav style={{ 
           position: 'fixed', 
           left: '0', 
-          top: '120px', 
+          top: '0', 
           bottom: '0', 
           width: '320px', 
           overflowY: 'auto', 
-          zIndex: 100,
+          zIndex: 10,
           backgroundColor: '#ffffff',
           borderRight: '1px solid #e9ecef',
           boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
