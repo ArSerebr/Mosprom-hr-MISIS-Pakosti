@@ -84,8 +84,8 @@ export function AppShell({ children }: AppShellProps) {
               hiddenFrom="sm"
               size="sm"
             />
-            <Text size="xl" fw={700} c="blue">
-              HR System
+            <Text size="xl" fw={700} c="red">
+              HR контур
             </Text>
           </Group>
 
@@ -109,7 +109,7 @@ export function AppShell({ children }: AppShellProps) {
             <Menu shadow="md" width={200}>
               <Menu.Target>
                 <ActionIcon variant="default" size="lg">
-                  <Avatar size="sm" radius="xl" color="blue">
+                  <Avatar size="sm" radius="xl" color="red">
                     {user ? getUserInitials(user.name) : 'U'}
                   </Avatar>
                 </ActionIcon>

@@ -182,7 +182,7 @@ function VacancyResponsesContent() {
         <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="blue" variant="light">
+              <ThemeIcon size="xl" radius="md" color="red" variant="light">
                 <IconUser size={24} />
               </ThemeIcon>
               <div>
@@ -244,7 +244,7 @@ function VacancyResponsesContent() {
                 <Table.Tr key={response.id}>
                   <Table.Td>
                     <Group gap="sm">
-                      <Avatar color="blue" radius="xl">
+                      <Avatar color="red" radius="xl">
                         {response.applicant_name
                           .split(" ")
                           .map((n) => n[0])
@@ -316,7 +316,7 @@ function VacancyResponsesContent() {
         {selectedResponse && (
           <Stack>
             <Group>
-              <Avatar size="xl" color="blue" radius="xl">
+              <Avatar size="xl" color="red" radius="xl">
                 {selectedResponse.applicant_name
                   .split(" ")
                   .map((n: string) => n[0])

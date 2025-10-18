@@ -363,7 +363,7 @@ export default function BoardPage() {
     <Container size="xl" py="md">
       <Group justify="space-between" mb="xl">
         <Title order={1}>Доска кандидатов</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={open}>
+        <Button leftSection={<IconPlus size={16} />} onClick={open} color="blue">
           Добавить кандидата
         </Button>
       </Group>
@@ -696,12 +696,12 @@ function CandidateCard({ candidate, onEdit, onDelete, isDragging = false }: Cand
         {candidate.skills.length > 0 && (
           <Group gap="xs" wrap="wrap">
             {candidate.skills.slice(0, 2).map((skill, index) => (
-              <Badge key={index} size="xs" variant="light">
+              <Badge key={index} size="xs" variant="light" color="blue">
                 {skill}
               </Badge>
             ))}
             {candidate.skills.length > 2 && (
-              <Badge size="xs" variant="light">
+              <Badge size="xs" variant="light" color="blue">
                 +{candidate.skills.length - 2}
               </Badge>
             )}

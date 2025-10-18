@@ -185,7 +185,7 @@ export default function UniversityRequestsPage() {
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
         <Card padding="md" radius="md" withBorder>
           <Group>
-            <ThemeIcon size="xl" radius="md" color="blue" variant="light">
+            <ThemeIcon size="xl" radius="md" color="red" variant="light">
               <IconSchool size={24} />
             </ThemeIcon>
             <div>
@@ -266,7 +266,7 @@ export default function UniversityRequestsPage() {
                   <Group gap="xs">
                     <ActionIcon
                       variant="light"
-                      color="blue"
+                      color="red"
                       onClick={() => handleView(request)}
                     >
                       <IconEye size={18} />
