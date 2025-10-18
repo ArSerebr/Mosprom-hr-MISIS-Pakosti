@@ -26,6 +26,7 @@ import {
   IconUser,
   IconCheckbox,
   IconWorld,
+  IconLayoutKanban,
 } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -40,6 +41,7 @@ const navigation = [
   { label: "Вакансии", icon: IconBriefcase, href: "/vacancies" },
   { label: "Стажировки", icon: IconSchool, href: "/internships" },
   { label: "Кандидаты", icon: IconUsers, href: "/candidates" },
+  { label: "Доска", icon: IconLayoutKanban, href: "/board" },
   { label: "Модерация", icon: IconCheckbox, href: "/moderation" },
   { label: "Каталог вакансий", icon: IconWorld, href: "/public-vacancies" },
 ];

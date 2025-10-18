@@ -146,7 +146,11 @@ function VacanciesContent() {
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteVacancy(id);
+      if (!token) {
+        throw new Error("Токен авторизации не найден");
+      }
+      
+      await deleteVacancy(id, token);
       setVacancies(vacancies.filter((v) => v.id !== id));
       notifications.show({
         title: "Успешно",
@@ -164,6 +168,10 @@ function VacanciesContent() {
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
+      if (!token) {
+        throw new Error("Токен авторизации не найден");
+      }
+
       // Преобразуем строки в массивы для responsibilities и requirements
       const processedValues = {
         ...values,
@@ -176,7 +184,7 @@ function VacanciesContent() {
       };
 
       if (editMode && selectedVacancy) {
-        const updated = await updateVacancy(selectedVacancy.id, processedValues);
+        const updated = await updateVacancy(selectedVacancy.id, processedValues, token);
         setVacancies(vacancies.map((v) => v.id === selectedVacancy.id ? updated : v));
         notifications.show({
           title: "Успешно",
@@ -187,7 +195,7 @@ function VacanciesContent() {
         const newVacancy = await createVacancy({
           ...processedValues,
           status: "pending"
-        });
+        }, token);
         setVacancies([...vacancies, newVacancy]);
         notifications.show({
           title: "Успешно",

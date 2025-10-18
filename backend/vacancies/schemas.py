@@ -92,10 +92,9 @@ class VacancyUpdate(BaseModel):
 
 
 class ApplicationCreate(BaseModel):
-    vacancy_id: int
+    vacancy_id: Optional[int] = None
     applicant_name: str
     applicant_email: str
-    applicant_university: str
     message: str = ""
 
     class Config:
@@ -104,8 +103,25 @@ class ApplicationCreate(BaseModel):
                 "vacancy_id": 1,
                 "applicant_name": "John Doe",
                 "applicant_email": "john@university.edu",
-                "applicant_university": "State University",
                 "message": "I'm very interested in this position!"
+            }
+        }
+
+
+class CandidateCreate(BaseModel):
+    """Схема для создания кандидата вручную HR/админом"""
+    vacancy_id: Optional[int] = None  # Может быть привязан к вакансии или нет
+    applicant_name: str
+    applicant_email: str
+    message: str = ""
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "vacancy_id": 1,  # Опционально
+                "applicant_name": "Иван Петров",
+                "applicant_email": "ivan@example.com",
+                "message": "Заинтересован в позиции"
             }
         }
 

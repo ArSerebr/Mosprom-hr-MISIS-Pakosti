@@ -11,7 +11,8 @@ from vacancies.schemas import (
     VacancyCreate,
     VacancyUpdate,
     ApplicationCreate,
-    ApplicationAndId
+    ApplicationAndId,
+    CandidateCreate
 )
 
 
@@ -74,6 +75,22 @@ async def update_vacancy(vacancy_id: int, vacancy_data: VacancyUpdate, user: Use
     return await Vacancy_Pydantic.from_tortoise_orm(vacancy)
 
 
+@router.delete("/{vacancy_id}")
+async def delete_vacancy(vacancy_id: int, user: User = Depends(get_current_user)):
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    vacancy = await Vacancy.get_or_none(id=vacancy_id)
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    if vacancy.created_by_id != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only delete your own vacancies")
+
+    await vacancy.delete()
+    return {"message": "Vacancy deleted successfully"}
+
+
 @router.get("/admin/applications", response_model=list[Application_Pydantic])
 async def get_all_applications(user: User = Depends(get_current_user)):
     if user.role != "admin":
@@ -81,19 +98,62 @@ async def get_all_applications(user: User = Depends(get_current_user)):
     return await Application_Pydantic.from_queryset(Application.all().prefetch_related("vacancy"))
 
 
+@router.get("/candidates", response_model=list[Application_Pydantic])
+async def get_all_candidates(user: User = Depends(get_current_user)):
+    """
+    Получить всех кандидатов (отклики) с полной информацией о вакансиях
+    Доступно для админов и HR
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Admin or HR access required")
+    
+    applications = Application.all().prefetch_related("vacancy")
+    return await Application_Pydantic.from_queryset(applications)
+
+
 @router.post("/applications", response_model=Application_Pydantic)
 async def create_application(application_data: ApplicationCreate):
-    vacancy = await Vacancy.get_or_none(id=application_data.vacancy_id, is_active=True)
-    if not vacancy:
-        raise HTTPException(status_code=404, detail="Vacancy not found or not active")
+    vacancy = None
+    if application_data.vacancy_id:
+        vacancy = await Vacancy.get_or_none(id=application_data.vacancy_id, is_active=True)
+        if not vacancy:
+            raise HTTPException(status_code=404, detail="Vacancy not found or not active")
 
     application = await Application.create(
         vacancy=vacancy,
         applicant_name=application_data.applicant_name,
         applicant_email=application_data.applicant_email,
-        applicant_university=application_data.applicant_university,
         message=application_data.message
     )
+    return await Application_Pydantic.from_tortoise_orm(application)
+
+
+@router.post("/candidates", response_model=Application_Pydantic)
+async def create_candidate(
+    candidate_data: CandidateCreate,
+    user: User = Depends(get_current_user)
+):
+    """
+    Создать кандидата вручную (для HR/админов)
+    Может быть привязан к вакансии или создан без привязки
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Admin or HR access required")
+    
+    vacancy = None
+    if candidate_data.vacancy_id:
+        vacancy = await Vacancy.get_or_none(id=candidate_data.vacancy_id, is_active=True)
+        if not vacancy:
+            raise HTTPException(status_code=404, detail="Vacancy not found or not active")
+    
+    # Создаем Application с привязкой к вакансии или без неё
+    application = await Application.create(
+        vacancy=vacancy,
+        applicant_name=candidate_data.applicant_name,
+        applicant_email=candidate_data.applicant_email,
+        message=candidate_data.message
+    )
+    
     return await Application_Pydantic.from_tortoise_orm(application)
 
 
@@ -124,6 +184,52 @@ async def get_applications_for_my_vacancies(user: User = Depends(get_current_use
 
     applications = await Application.filter(vacancy__created_by=user.id).select_related("vacancy")
     return [ApplicationAndId(vacancy_id=app.vacancy.id, application=app) for app in applications]
+
+
+@router.get("/{vacancy_id}/applications", response_model=list[Application_Pydantic])
+async def get_vacancy_applications(vacancy_id: int, user: User = Depends(get_current_user)):
+    """
+    Получить все отклики на конкретную вакансию
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Проверяем, что вакансия принадлежит пользователю или пользователь - админ
+    vacancy = await Vacancy.get_or_none(id=vacancy_id)
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+    
+    if vacancy.created_by_id != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only view applications for your own vacancies")
+
+    applications = await Application.filter(vacancy_id=vacancy_id)
+    return await Application_Pydantic.from_queryset(applications)
+
+
+@router.put("/applications/{application_id}", response_model=Application_Pydantic)
+async def update_application_status(
+    application_id: int, 
+    status_data: dict, 
+    user: User = Depends(get_current_user)
+):
+    """
+    Обновить статус отклика
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    application = await Application.get_or_none(id=application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Проверяем, что отклик относится к вакансии пользователя или пользователь - админ
+    if application.vacancy.created_by_id != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only update applications for your own vacancies")
+
+    application.status = status_data.get("status", application.status)
+    await application.save()
+    
+    return await Application_Pydantic.from_tortoise_orm(application)
 
 
 @router.post("/bitrix-form-json")

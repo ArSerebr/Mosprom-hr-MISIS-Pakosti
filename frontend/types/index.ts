@@ -39,13 +39,46 @@ export interface Vacancy {
 export interface Application {
   id: number;
   vacancy: number; // ID вакансии
-  vacancy_data?: Vacancy; // Полная информация о вакансии
+  vacancy_data?: Vacancy; // Полная информация о вакансии (для отображения)
   applicant_name: string;
   applicant_email: string;
-  applicant_university: string;
   message?: string;
   status: "pending" | "approve" | "rejected";
   created_at: string;
+}
+
+// Тип для кандидата (отклика с расширенной информацией)
+export interface Candidate {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  position: string;
+  experience?: string;
+  skills?: string[];
+  status: "pending" | "approve" | "rejected";
+  source?: string;
+  notes?: string;
+  resumeUrl?: string;
+  // Привязка к вакансии
+  vacancyId?: number;
+  vacancy?: Vacancy;
+  university?: string;
+  message?: string;
+  created_at: string;
+}
+
+// Типы для создания и обновления откликов
+export interface ApplicationCreate {
+  vacancy_id?: number | null;
+  applicant_name: string;
+  applicant_email: string;
+  message?: string;
+}
+
+export interface ApplicationUpdate {
+  status?: "pending" | "approve" | "rejected";
+  message?: string;
 }
 
 export interface CandidateProfile {
@@ -107,3 +140,6 @@ export interface Notification {
   createdAt: string;
   link?: string;
 }
+
+// Экспорт типов для доски
+export * from './board';

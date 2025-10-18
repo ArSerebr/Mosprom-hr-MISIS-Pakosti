@@ -28,10 +28,9 @@ class Vacancy(models.Model):
 
 class Application(models.Model):
     id = fields.IntField(pk=True)
-    vacancy = fields.ForeignKeyField("models.Vacancy", related_name="applications")
+    vacancy = fields.ForeignKeyField("models.Vacancy", related_name="applications", null=True)
     applicant_name = fields.CharField(max_length=100)
     applicant_email = fields.CharField(max_length=255)
-    applicant_university = fields.CharField(max_length=100)
     message = fields.TextField(null=True)
     status = fields.CharField(max_length=20, default="pending")
     created_at = fields.DatetimeField(auto_now_add=True)

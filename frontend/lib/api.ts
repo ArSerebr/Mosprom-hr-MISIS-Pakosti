@@ -80,17 +80,15 @@ export interface Application {
   vacancy_data?: Vacancy; // Полная информация о вакансии
   applicant_name: string;
   applicant_email: string;
-  applicant_university: string;
   message?: string;
   status: "pending" | "approve" | "rejected";
   created_at: string;
 }
 
 export interface ApplicationCreate {
-  vacancy_id: number;
+  vacancy_id?: number | null;
   applicant_name: string;
   applicant_email: string;
-  applicant_university: string;
   message?: string;
 }
 
@@ -144,11 +142,15 @@ export async function getMyVacancies(token: string): Promise<Vacancy[]> {
  * Создать новую вакансию
  */
 export async function createVacancy(
-  data: Omit<Vacancy, "id" | "created_at" | "is_active">
+  data: Omit<Vacancy, "id" | "created_at" | "is_active">,
+  token: string
 ): Promise<Vacancy> {
   const response = await fetch(`${API_URL}/vacancies/create`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(data),
   });
   return handleResponse<Vacancy>(response);
@@ -159,11 +161,15 @@ export async function createVacancy(
  */
 export async function updateVacancy(
   id: number,
-  data: Partial<Vacancy>
+  data: Partial<Vacancy>,
+  token: string
 ): Promise<Vacancy> {
   const response = await fetch(`${API_URL}/vacancies/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(data),
   });
   return handleResponse<Vacancy>(response);
@@ -172,9 +178,13 @@ export async function updateVacancy(
 /**
  * Удалить вакансию
  */
-export async function deleteVacancy(id: number): Promise<void> {
+export async function deleteVacancy(id: number, token: string): Promise<void> {
   const response = await fetch(`${API_URL}/vacancies/${id}`, {
     method: "DELETE",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
   });
   if (!response.ok) {
     throw new Error(`Failed to delete vacancy: ${response.statusText}`);
@@ -188,16 +198,39 @@ export async function deleteVacancy(id: number): Promise<void> {
 /**
  * Получить все отклики на вакансии пользователя
  */
-export async function getMyApplications(): Promise<Application[]> {
-  const response = await fetch(`${API_URL}/vacancies/my_vacancies`);
+export async function getMyApplications(token: string): Promise<Application[]> {
+  const response = await fetch(`${API_URL}/vacancies/my_vacancies`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
   return handleResponse<Application[]>(response);
 }
 
 /**
  * Получить все отклики (для админа)
  */
-export async function getAllApplications(): Promise<Application[]> {
-  const response = await fetch(`${API_URL}/vacancies/admin/applications`);
+export async function getAllApplications(token: string): Promise<Application[]> {
+  const response = await fetch(`${API_URL}/vacancies/admin/applications`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return handleResponse<Application[]>(response);
+}
+
+/**
+ * Получить всех кандидатов (отклики с информацией о вакансиях)
+ */
+export async function getAllCandidates(token: string): Promise<Application[]> {
+  const response = await fetch(`${API_URL}/vacancies/candidates`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
   return handleResponse<Application[]>(response);
 }
 
@@ -214,18 +247,56 @@ export async function createApplication(data: ApplicationCreate): Promise<Applic
 }
 
 /**
+ * Создать кандидата вручную (для HR/админов)
+ */
+export async function createCandidate(
+  data: ApplicationCreate,
+  token: string
+): Promise<Application> {
+  const response = await fetch(`${API_URL}/vacancies/candidates`, {
+    method: "POST",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<Application>(response);
+}
+
+/**
  * Обновить статус отклика
  */
 export async function updateApplicationStatus(
   id: number,
-  status: "pending" | "approve" | "rejected"
+  status: "pending" | "approve" | "rejected",
+  token: string
 ): Promise<Application> {
   const response = await fetch(`${API_URL}/vacancies/applications/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ status }),
   });
   return handleResponse<Application>(response);
+}
+
+/**
+ * Получить отклики на конкретную вакансию
+ */
+export async function getVacancyApplications(
+  vacancyId: number,
+  token: string
+): Promise<Application[]> {
+  const response = await fetch(`${API_URL}/vacancies/${vacancyId}/applications`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return handleResponse<Application[]>(response);
 }
 
 // ============================================

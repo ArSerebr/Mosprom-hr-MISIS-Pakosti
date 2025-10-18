@@ -1,6 +1,8 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell/AppShell";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import {
   Stack,
@@ -39,7 +41,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { 
   getVacancy, 
-  getAllApplications, 
+  getVacancyApplications, 
   updateApplicationStatus,
   Application,
   Vacancy 
@@ -64,6 +66,15 @@ const getStatusLabel = (status: string) => {
 };
 
 export default function VacancyResponsesPage() {
+  return (
+    <ProtectedRoute>
+      <VacancyResponsesContent />
+    </ProtectedRoute>
+  );
+}
+
+function VacancyResponsesContent() {
+  const { token } = useAuth();
   const params = useParams();
   const vacancyId = parseInt(params.id as string);
   
@@ -81,15 +92,17 @@ export default function VacancyResponsesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+      if (!token) {
+        throw new Error("Токен авторизации не найден");
+      }
+      
       const [vacancyData, applicationsData] = await Promise.all([
         getVacancy(vacancyId),
-        getAllApplications()
+        getVacancyApplications(vacancyId, token)
       ]);
       
       setVacancy(vacancyData);
-      // Фильтруем отклики для конкретной вакансии
-      const vacancyResponses = applicationsData.filter(app => app.vacancy === vacancyId);
-      setResponses(vacancyResponses);
+      setResponses(applicationsData);
     } catch (error) {
       notifications.show({
         title: "Ошибка",
@@ -108,7 +121,11 @@ export default function VacancyResponsesPage() {
 
   const handleStatusChange = async (id: number, newStatus: "pending" | "approve" | "rejected") => {
     try {
-      await updateApplicationStatus(id, newStatus);
+      if (!token) {
+        throw new Error("Токен авторизации не найден");
+      }
+      
+      await updateApplicationStatus(id, newStatus, token);
       setResponses(
         responses.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
       );
@@ -256,7 +273,7 @@ export default function VacancyResponsesPage() {
                       </Group>
                       <Group gap="xs">
                         <IconUser size={14} />
-                        <Text size="sm">{response.applicant_university}</Text>
+                        <Text size="sm">Не указан</Text>
                       </Group>
                     </Stack>
                   </Table.Td>
@@ -328,7 +345,7 @@ export default function VacancyResponsesPage() {
                 </Group>
                 <Group gap="xs">
                   <IconUser size={18} />
-                  <Text>{selectedResponse.applicant_university}</Text>
+                  <Text>Не указан</Text>
                 </Group>
               </Stack>
             </Paper>

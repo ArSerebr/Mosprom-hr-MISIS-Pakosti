@@ -1,7 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell/AppShell";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Title,
   Button,
@@ -22,6 +22,8 @@ import {
   SimpleGrid,
   ThemeIcon,
   Anchor,
+  Loader,
+  Center,
 } from "@mantine/core";
 import {
   IconPlus,
@@ -37,181 +39,39 @@ import {
   IconX,
   IconClock,
   IconStar,
+  IconSchool,
 } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
+import { getAllCandidates, updateApplicationStatus, createCandidate } from "@/lib/api";
+import { Application, Vacancy } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface Vacancy {
-  id: number;
-  title: string;
-  company: string;
-  department: string;
-  location: string;
-  salary: string;
-  employmentType: string;
-}
-
-interface Candidate {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  position: string;
-  experience: string;
-  skills: string[];
-  status: "new" | "interview" | "test-task" | "offer" | "accepted" | "rejected";
-  source: string;
-  notes: string;
-  resumeUrl?: string;
-  // Привязка к вакансии
-  vacancyId?: number;
-  vacancy?: Vacancy;
-}
-
-// Моковые вакансии для привязки
-const mockVacancies: Vacancy[] = [
-  {
-    id: 1,
-    title: "Senior Frontend Developer",
-    company: "ТехКомпания",
-    department: "IT",
-    location: "Москва",
-    salary: "200 000 - 300 000 ₽",
-    employmentType: "Полная занятость",
-  },
-  {
-    id: 2,
-    title: "Product Manager",
-    company: "Стартап АБВ",
-    department: "Продукт",
-    location: "Москва",
-    salary: "250 000 - 350 000 ₽",
-    employmentType: "Полная занятость",
-  },
-  {
-    id: 3,
-    title: "UX/UI Designer",
-    company: "Дизайн Студия",
-    department: "Дизайн",
-    location: "Удаленно",
-    salary: "150 000 - 220 000 ₽",
-    employmentType: "Полная занятость",
-  },
-  {
-    id: 4,
-    title: "Backend Developer",
-    company: "ТехКомпания",
-    department: "IT",
-    location: "Москва",
-    salary: "180 000 - 280 000 ₽",
-    employmentType: "Полная занятость",
-  },
-  {
-    id: 5,
-    title: "Data Analyst",
-    company: "АналитикПро",
-    department: "Аналитика",
-    location: "Москва",
-    salary: "120 000 - 180 000 ₽",
-    employmentType: "Полная занятость",
-  },
-];
-
-const mockCandidates: Candidate[] = [
-  {
-    id: 1,
-    name: "Алексей Иванов",
-    email: "alex.ivanov@email.com",
-    phone: "+7 (999) 123-45-67",
-    position: "Frontend Developer",
-    experience: "5 лет",
-    skills: ["React", "TypeScript", "Next.js", "CSS"],
-    status: "interview",
-    source: "hh.ru",
-    notes: "Сильный кандидат, хорошие технические навыки",
-    vacancyId: 1,
-    vacancy: mockVacancies[0],
-  },
-  {
-    id: 2,
-    name: "Мария Петрова",
-    email: "maria.petrova@email.com",
-    phone: "+7 (999) 234-56-78",
-    position: "Product Manager",
-    experience: "7 лет",
-    skills: ["Product Management", "Agile", "Analytics", "Leadership"],
-    status: "offer",
-    source: "LinkedIn",
-    notes: "Опытный PM с отличными рекомендациями",
-    vacancyId: 2,
-    vacancy: mockVacancies[1],
-  },
-  {
-    id: 3,
-    name: "Дмитрий Сидоров",
-    email: "dmitry.sidorov@email.com",
-    phone: "+7 (999) 345-67-89",
-    position: "UX Designer",
-    experience: "3 года",
-    skills: ["Figma", "User Research", "Prototyping", "UI Design"],
-    status: "new",
-    source: "Рекомендация",
-    notes: "Молодой специалист с хорошим портфолио",
-    vacancyId: 3,
-    vacancy: mockVacancies[2],
-  },
-  {
-    id: 4,
-    name: "Екатерина Смирнова",
-    email: "kate.smirnova@email.com",
-    phone: "+7 (999) 456-78-90",
-    position: "Backend Developer",
-    experience: "4 года",
-    skills: ["Python", "FastAPI", "PostgreSQL", "Docker"],
-    status: "test-task",
-    source: "hh.ru",
-    notes: "Прошла первое интервью, отправлено тестовое задание",
-    vacancyId: 4,
-    vacancy: mockVacancies[3],
-  },
-  {
-    id: 5,
-    name: "Иван Кузнецов",
-    email: "ivan.kuznetsov@email.com",
-    phone: "+7 (999) 567-89-01",
-    position: "Data Analyst",
-    experience: "2 года",
-    skills: ["SQL", "Python", "Tableau", "Excel"],
-    status: "new",
-    source: "Сайт компании",
-    notes: "Недавний выпускник с хорошими знаниями",
-    vacancyId: 5,
-    vacancy: mockVacancies[4],
-  },
-  {
-    id: 6,
-    name: "Анна Волкова",
-    email: "anna.volkova@email.com",
-    phone: "+7 (999) 678-90-12",
-    position: "Frontend Developer",
-    experience: "6 лет",
-    skills: ["React", "Vue.js", "JavaScript", "Node.js"],
-    status: "accepted",
-    source: "LinkedIn",
-    notes: "Приняла оффер, выходит через 2 недели",
-    vacancyId: 1,
-    vacancy: mockVacancies[0],
-  },
-];
+// Преобразование Application в Candidate для совместимости с UI
+const applicationToCandidate = (app: Application) => ({
+  id: app.id,
+  name: app.applicant_name,
+  email: app.applicant_email,
+  phone: "", // В базе нет телефона
+  position: app.vacancy_data?.vacancy_title || "Не указана",
+  experience: "", // В базе нет опыта
+  skills: [], // В базе нет навыков
+  status: app.status,
+  source: "Отклик на вакансию",
+  notes: app.message || "",
+  resumeUrl: undefined,
+  vacancyId: app.vacancy,
+  vacancy: app.vacancy_data,
+  university: "", // Удалено поле applicant_university
+  message: app.message,
+  created_at: app.created_at,
+});
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    new: "blue",
-    interview: "orange",
-    "test-task": "yellow",
-    offer: "teal",
-    accepted: "green",
+    pending: "blue",
+    approve: "green",
     rejected: "red",
   };
   return colors[status] || "gray";
@@ -219,27 +79,24 @@ const getStatusColor = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    new: "Новый",
-    interview: "Интервью",
-    "test-task": "Тестовое",
-    offer: "Оффер",
-    accepted: "Принято",
-    rejected: "Отказ",
+    pending: "На рассмотрении",
+    approve: "Одобрено",
+    rejected: "Отклонено",
   };
   return labels[status] || status;
 };
 
 export default function CandidatesPage() {
-  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
+  const { user, token } = useAuth();
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>("all");
   const [vacancyFilter, setVacancyFilter] = useState<string | null>("all");
   const [opened, { open, close }] = useDisclosure(false);
   const [viewOpened, { open: openView, close: closeView }] =
     useDisclosure(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(
-    null
-  );
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   const form = useForm({
@@ -256,6 +113,31 @@ export default function CandidatesPage() {
     },
   });
 
+  // Загрузка кандидатов при монтировании компонента
+  useEffect(() => {
+    loadCandidates();
+  }, []);
+
+  const loadCandidates = async () => {
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const applications = await getAllCandidates(token);
+      const candidatesData = applications.map(applicationToCandidate);
+      setCandidates(candidatesData);
+    } catch (error) {
+      console.error("Ошибка загрузки кандидатов:", error);
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось загрузить кандидатов",
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Получить список уникальных вакансий
   const uniqueVacancies = Array.from(
     new Map(
@@ -271,7 +153,7 @@ export default function CandidatesPage() {
     open();
   };
 
-  const handleEdit = (candidate: Candidate) => {
+  const handleEdit = (candidate: any) => {
     setEditMode(true);
     setSelectedCandidate(candidate);
     form.setValues({
@@ -283,17 +165,19 @@ export default function CandidatesPage() {
       skills: candidate.skills.join(", "),
       source: candidate.source,
       notes: candidate.notes,
+      // university: candidate.university || "", // Поле удалено
       vacancyId: candidate.vacancyId?.toString() || "",
     });
     open();
   };
 
-  const handleView = (candidate: Candidate) => {
+  const handleView = (candidate: any) => {
     setSelectedCandidate(candidate);
     openView();
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
+    // В реальном приложении здесь должен быть API для удаления
     setCandidates(candidates.filter((c) => c.id !== id));
     notifications.show({
       title: "Успешно",
@@ -302,71 +186,68 @@ export default function CandidatesPage() {
     });
   };
 
-  const handleStatusChange = (id: number, newStatus: Candidate["status"]) => {
-    setCandidates(
-      candidates.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
-    );
-    notifications.show({
-      title: "Успешно",
-      message: "Статус обновлен",
-      color: "green",
-    });
-  };
-
-  const handleSubmit = (values: typeof form.values) => {
-    const vacancyId = values.vacancyId ? parseInt(values.vacancyId) : undefined;
-    const vacancy = vacancyId
-      ? mockVacancies.find((v) => v.id === vacancyId)
-      : undefined;
-
-    if (editMode && selectedCandidate) {
+  const handleStatusChange = async (id: number, newStatus: "pending" | "approve" | "rejected") => {
+    if (!token) return;
+    
+    try {
+      await updateApplicationStatus(id, newStatus, token);
       setCandidates(
-        candidates.map((c) =>
-          c.id === selectedCandidate.id
-            ? {
-                ...c,
-                name: values.name,
-                email: values.email,
-                phone: values.phone,
-                position: values.position,
-                experience: values.experience,
-                source: values.source,
-                notes: values.notes,
-                skills: values.skills.split(",").map((s) => s.trim()),
-                vacancyId,
-                vacancy,
-              }
-            : c
-        )
+        candidates.map((c) => (c.id === id ? { ...c, status: newStatus } : c))
       );
       notifications.show({
         title: "Успешно",
-        message: "Кандидат обновлен",
+        message: "Статус обновлен",
         color: "green",
       });
-    } else {
-      const newCandidate: Candidate = {
-        id: Math.max(...candidates.map((c) => c.id)) + 1,
-        name: values.name,
-        email: values.email,
-        phone: values.phone,
-        position: values.position,
-        experience: values.experience,
-        source: values.source,
-        notes: values.notes,
-        skills: values.skills.split(",").map((s) => s.trim()),
-        status: "new",
-        vacancyId,
-        vacancy,
+    } catch (error) {
+      console.error("Ошибка обновления статуса:", error);
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось обновить статус",
+        color: "red",
+      });
+    }
+  };
+
+  const handleSubmit = async (values: typeof form.values) => {
+    if (!token) {
+      notifications.show({
+        title: "Ошибка",
+        message: "Необходима авторизация",
+        color: "red",
+      });
+      return;
+    }
+
+    try {
+      const candidateData = {
+        vacancy_id: values.vacancyId ? parseInt(values.vacancyId) : null,
+        applicant_name: values.name,
+        applicant_email: values.email,
+        // applicant_university: values.university || "Не указан", // Поле удалено
+        message: values.notes || "",
       };
-      setCandidates([...candidates, newCandidate]);
+
+      const newCandidate = await createCandidate(candidateData, token);
+      const candidate = applicationToCandidate(newCandidate);
+      
+      setCandidates([candidate, ...candidates]);
+      
       notifications.show({
         title: "Успешно",
         message: "Кандидат добавлен",
         color: "green",
       });
+      
+      close();
+    } catch (error) {
+      console.error("Ошибка создания кандидата:", error);
+      notifications.show({
+        title: "Ошибка",
+        message: "Не удалось создать кандидата",
+        color: "red",
+      });
     }
-    close();
   };
 
   const filteredCandidates = candidates.filter((candidate) => {
@@ -374,7 +255,7 @@ export default function CandidatesPage() {
       candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (candidate.vacancy?.title || "")
+      (candidate.vacancy?.vacancy_title || "")
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
     const matchesStatus =
@@ -387,10 +268,23 @@ export default function CandidatesPage() {
 
   const stats = {
     total: candidates.length,
-    new: candidates.filter((c) => c.status === "new").length,
-    interview: candidates.filter((c) => c.status === "interview").length,
-    offers: candidates.filter((c) => c.status === "offer").length,
+    pending: candidates.filter((c) => c.status === "pending").length,
+    approve: candidates.filter((c) => c.status === "approve").length,
+    rejected: candidates.filter((c) => c.status === "rejected").length,
   };
+
+  if (loading) {
+    return (
+      <AppShell>
+        <Center h={400}>
+          <Stack align="center">
+            <Loader size="lg" />
+            <Text>Загрузка кандидатов...</Text>
+          </Stack>
+        </Center>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -421,45 +315,45 @@ export default function CandidatesPage() {
           </Card>
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="green" variant="light">
-                <IconStar size={24} />
-              </ThemeIcon>
-              <div>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  Новые
-                </Text>
-                <Text size="xl" fw={700}>
-                  {stats.new}
-                </Text>
-              </div>
-            </Group>
-          </Card>
-          <Card padding="md" radius="md" withBorder>
-            <Group>
-              <ThemeIcon size="xl" radius="md" color="orange" variant="light">
+              <ThemeIcon size="xl" radius="md" color="blue" variant="light">
                 <IconClock size={24} />
               </ThemeIcon>
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  На интервью
+                  На рассмотрении
                 </Text>
                 <Text size="xl" fw={700}>
-                  {stats.interview}
+                  {stats.pending}
                 </Text>
               </div>
             </Group>
           </Card>
           <Card padding="md" radius="md" withBorder>
             <Group>
-              <ThemeIcon size="xl" radius="md" color="teal" variant="light">
+              <ThemeIcon size="xl" radius="md" color="green" variant="light">
                 <IconCheck size={24} />
               </ThemeIcon>
               <div>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  Офферы
+                  Одобрено
                 </Text>
                 <Text size="xl" fw={700}>
-                  {stats.offers}
+                  {stats.approve}
+                </Text>
+              </div>
+            </Group>
+          </Card>
+          <Card padding="md" radius="md" withBorder>
+            <Group>
+              <ThemeIcon size="xl" radius="md" color="red" variant="light">
+                <IconX size={24} />
+              </ThemeIcon>
+              <div>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                  Отклонено
+                </Text>
+                <Text size="xl" fw={700}>
+                  {stats.rejected}
                 </Text>
               </div>
             </Group>
@@ -480,12 +374,9 @@ export default function CandidatesPage() {
                 placeholder="Статус"
                 data={[
                   { value: "all", label: "Все" },
-                  { value: "new", label: "Новые" },
-                  { value: "interview", label: "Интервью" },
-                  { value: "test-task", label: "Тестовое" },
-                  { value: "offer", label: "Оффер" },
-                  { value: "accepted", label: "Принято" },
-                  { value: "rejected", label: "Отказ" },
+                  { value: "pending", label: "На рассмотрении" },
+                  { value: "approve", label: "Одобрено" },
+                  { value: "rejected", label: "Отклонено" },
                 ]}
                 value={statusFilter}
                 onChange={setStatusFilter}
@@ -498,7 +389,7 @@ export default function CandidatesPage() {
                   { value: "all", label: "Все вакансии" },
                   ...uniqueVacancies.map((v) => ({
                     value: v.id.toString(),
-                    label: v.title,
+                    label: v.vacancy_title,
                   })),
                 ]}
                 value={vacancyFilter}
@@ -514,7 +405,7 @@ export default function CandidatesPage() {
                 <Table.Th>Кандидат</Table.Th>
                 <Table.Th>Вакансия</Table.Th>
                 <Table.Th>Контакты</Table.Th>
-                <Table.Th>Опыт</Table.Th>
+                <Table.Th>Университет</Table.Th>
                 <Table.Th>Статус</Table.Th>
                 <Table.Th>Действия</Table.Th>
               </Table.Tr>
@@ -527,7 +418,7 @@ export default function CandidatesPage() {
                       <Avatar color="blue" radius="xl">
                         {candidate.name
                           .split(" ")
-                          .map((n) => n[0])
+                          .map((n: string) => n[0])
                           .join("")}
                       </Avatar>
                       <div>
@@ -542,17 +433,17 @@ export default function CandidatesPage() {
                     {candidate.vacancy ? (
                       <div>
                         <Text fw={500} size="sm">
-                          {candidate.vacancy.title}
+                          {candidate.vacancy.vacancy_title}
                         </Text>
                         <Group gap={4}>
                           <Text size="xs" c="dimmed">
-                            {candidate.vacancy.company}
+                            {candidate.vacancy.company_name}
                           </Text>
                           <Text size="xs" c="dimmed">
                             •
                           </Text>
                           <Text size="xs" c="dimmed">
-                            {candidate.vacancy.salary}
+                            {candidate.vacancy.salary || "Зарплата не указана"}
                           </Text>
                         </Group>
                       </div>
@@ -570,40 +461,39 @@ export default function CandidatesPage() {
                           {candidate.email}
                         </Anchor>
                       </Group>
-                      <Group gap="xs">
-                        <IconPhone size={14} />
-                        <Text size="sm">{candidate.phone}</Text>
-                      </Group>
+                      {candidate.phone && (
+                        <Group gap="xs">
+                          <IconPhone size={14} />
+                          <Text size="sm">{candidate.phone}</Text>
+                        </Group>
+                      )}
                     </Stack>
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
-                      <IconBriefcase size={16} />
-                      {candidate.experience}
+                      <IconSchool size={16} />
+                      <Text size="sm">Не указан</Text>
                     </Group>
                   </Table.Td>
                   <Table.Td>
                     <Select
                       size="xs"
                       data={[
-                        { value: "new", label: "Новый" },
-                        { value: "interview", label: "Интервью" },
-                        { value: "test-task", label: "Тестовое" },
-                        { value: "offer", label: "Оффер" },
-                        { value: "accepted", label: "Принято" },
-                        { value: "rejected", label: "Отказ" },
+                        { value: "pending", label: "На рассмотрении" },
+                        { value: "approve", label: "Одобрено" },
+                        { value: "rejected", label: "Отклонено" },
                       ]}
                       value={candidate.status}
                       onChange={(value) =>
                         handleStatusChange(
                           candidate.id,
-                          value as Candidate["status"]
+                          value as "pending" | "approve" | "rejected"
                         )
                       }
                       styles={{
                         input: {
                           color:
-                            candidate.status === "accepted"
+                            candidate.status === "approve"
                               ? "green"
                               : candidate.status === "rejected"
                               ? "red"
@@ -673,7 +563,6 @@ export default function CandidatesPage() {
                 <TextInput
                   label="Телефон"
                   placeholder="+7 (999) 123-45-67"
-                  required
                   {...form.getInputProps("phone")}
                 />
               </Grid.Col>
@@ -688,24 +577,17 @@ export default function CandidatesPage() {
                 />
               </Grid.Col>
               <Grid.Col span={6}>
-                <TextInput
-                  label="Опыт работы"
-                  placeholder="5 лет"
-                  required
-                  {...form.getInputProps("experience")}
-                />
+                {/* Поле университета удалено */}
               </Grid.Col>
             </Grid>
             <TextInput
               label="Навыки (через запятую)"
               placeholder="React, TypeScript, Next.js"
-              required
               {...form.getInputProps("skills")}
             />
             <TextInput
               label="Источник"
               placeholder="hh.ru, LinkedIn, рекомендация..."
-              required
               {...form.getInputProps("source")}
             />
             <Select
@@ -715,9 +597,9 @@ export default function CandidatesPage() {
               leftSection={<IconBriefcase size={18} />}
               data={[
                 { value: "", label: "Без привязки к вакансии" },
-                ...mockVacancies.map((v) => ({
+                ...uniqueVacancies.map((v) => ({
                   value: v.id.toString(),
-                  label: `${v.title} - ${v.company} (${v.salary})`,
+                  label: `${v.vacancy_title} - ${v.company_name} (${v.salary || "Зарплата не указана"})`,
                 })),
               ]}
               {...form.getInputProps("vacancyId")}
@@ -754,7 +636,7 @@ export default function CandidatesPage() {
               <Avatar size="xl" color="blue" radius="xl">
                 {selectedCandidate.name
                   .split(" ")
-                  .map((n) => n[0])
+                  .map((n: string) => n[0])
                   .join("")}
               </Avatar>
               <div>
@@ -775,17 +657,19 @@ export default function CandidatesPage() {
                     {selectedCandidate.email}
                   </Anchor>
                 </div>
+                {selectedCandidate.phone && (
+                  <div>
+                    <Text size="sm" c="dimmed" mb={4}>
+                      Телефон
+                    </Text>
+                    <Text>{selectedCandidate.phone}</Text>
+                  </div>
+                )}
                 <div>
                   <Text size="sm" c="dimmed" mb={4}>
-                    Телефон
+                    Университет
                   </Text>
-                  <Text>{selectedCandidate.phone}</Text>
-                </div>
-                <div>
-                  <Text size="sm" c="dimmed" mb={4}>
-                    Опыт работы
-                  </Text>
-                  <Text>{selectedCandidate.experience}</Text>
+                  <Text>Не указан</Text>
                 </div>
                 <div>
                   <Text size="sm" c="dimmed" mb={4}>
@@ -805,6 +689,12 @@ export default function CandidatesPage() {
                     {getStatusLabel(selectedCandidate.status)}
                   </Badge>
                 </div>
+                <div>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Дата отклика
+                  </Text>
+                  <Text>{new Date(selectedCandidate.created_at).toLocaleDateString('ru-RU')}</Text>
+                </div>
               </Stack>
             </Paper>
 
@@ -818,20 +708,20 @@ export default function CandidatesPage() {
                   <Stack gap="sm">
                     <div>
                       <Text fw={600} size="lg">
-                        {selectedCandidate.vacancy.title}
+                        {selectedCandidate.vacancy.vacancy_title}
                       </Text>
                       <Text c="dimmed" size="sm">
-                        {selectedCandidate.vacancy.company}
+                        {selectedCandidate.vacancy.company_name}
                       </Text>
                     </div>
 
                     <SimpleGrid cols={2} spacing="xs">
                       <div>
                         <Text size="xs" c="dimmed">
-                          Отдел
+                          Специальность
                         </Text>
                         <Text size="sm">
-                          {selectedCandidate.vacancy.department}
+                          {selectedCandidate.vacancy.specialty}
                         </Text>
                       </div>
                       <div>
@@ -839,7 +729,7 @@ export default function CandidatesPage() {
                           Локация
                         </Text>
                         <Text size="sm">
-                          {selectedCandidate.vacancy.location}
+                          {selectedCandidate.vacancy.location || "Не указана"}
                         </Text>
                       </div>
                       <div>
@@ -847,7 +737,7 @@ export default function CandidatesPage() {
                           Зарплата
                         </Text>
                         <Text size="sm" fw={500}>
-                          {selectedCandidate.vacancy.salary}
+                          {selectedCandidate.vacancy.salary || "Не указана"}
                         </Text>
                       </div>
                       <div>
@@ -855,7 +745,7 @@ export default function CandidatesPage() {
                           Занятость
                         </Text>
                         <Text size="sm">
-                          {selectedCandidate.vacancy.employmentType}
+                          {selectedCandidate.vacancy.employment_type || "Не указана"}
                         </Text>
                       </div>
                     </SimpleGrid>
@@ -864,27 +754,42 @@ export default function CandidatesPage() {
               </div>
             )}
 
-            <div>
-              <Text size="sm" c="dimmed" mb={8}>
-                Навыки
-              </Text>
-              <Group gap="xs">
-                {selectedCandidate.skills.map((skill, index) => (
-                  <Badge key={index} variant="light">
-                    {skill}
-                  </Badge>
-                ))}
-              </Group>
-            </div>
+            {selectedCandidate.skills && selectedCandidate.skills.length > 0 && (
+              <div>
+                <Text size="sm" c="dimmed" mb={8}>
+                  Навыки
+                </Text>
+                <Group gap="xs">
+                  {selectedCandidate.skills.map((skill: string, index: number) => (
+                    <Badge key={index} variant="light">
+                      {skill}
+                    </Badge>
+                  ))}
+                </Group>
+              </div>
+            )}
 
-            <div>
-              <Text size="sm" c="dimmed" mb={4}>
-                Заметки
-              </Text>
-              <Paper p="md" radius="md" withBorder>
-                <Text>{selectedCandidate.notes}</Text>
-              </Paper>
-            </div>
+            {selectedCandidate.message && (
+              <div>
+                <Text size="sm" c="dimmed" mb={4}>
+                  Сообщение от кандидата
+                </Text>
+                <Paper p="md" radius="md" withBorder>
+                  <Text>{selectedCandidate.message}</Text>
+                </Paper>
+              </div>
+            )}
+
+            {selectedCandidate.notes && (
+              <div>
+                <Text size="sm" c="dimmed" mb={4}>
+                  Заметки
+                </Text>
+                <Paper p="md" radius="md" withBorder>
+                  <Text>{selectedCandidate.notes}</Text>
+                </Paper>
+              </div>
+            )}
           </Stack>
         )}
       </Modal>
