@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from typing import Optional, List
+
 
 from auth.router import get_current_user
 from auth.models import User
@@ -10,10 +12,11 @@ from vacancies.schemas import (
     VacancyUpdate,
     ApplicationCreate,
     ApplicationAndId,
+    CandidateCreate
 )
 
 
-router = APIRouter(prefix="/vacancies", tags=["vacancies"])
+router = APIRouter(tags=["vacancies"])
 
 
 @router.get("/read", response_model=list[Vacancy_Pydantic])
@@ -30,10 +33,24 @@ async def create_vacancy(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     vacancy = await Vacancy.create(
-        title=vacancy_data.title,
-        description=vacancy_data.description,
-        company=vacancy_data.company,
-        type=vacancy_data.type,
+        vacancy_title=vacancy_data.vacancy_title,
+        company_logo=vacancy_data.company_logo,
+        company_name=vacancy_data.company_name,
+        platform=vacancy_data.platform,
+        specialty=vacancy_data.specialty,
+        responsibilities=vacancy_data.responsibilities,
+        requirements=vacancy_data.requirements,
+        employment_type=vacancy_data.employment_type,
+        schedule=vacancy_data.schedule,
+        location=vacancy_data.location,
+        location_yandex_link=vacancy_data.location_yandex_link,
+        probation=vacancy_data.probation,
+        salary=vacancy_data.salary,
+        extra_info=vacancy_data.extra_info,
+        link_text=vacancy_data.link_text,
+        company_website=vacancy_data.company_website,
+        promo_video=vacancy_data.promo_video,
+        status=vacancy_data.status,
         created_by_id=user.id
     )
     return await Vacancy_Pydantic.from_tortoise_orm(vacancy)
@@ -58,6 +75,22 @@ async def update_vacancy(vacancy_id: int, vacancy_data: VacancyUpdate, user: Use
     return await Vacancy_Pydantic.from_tortoise_orm(vacancy)
 
 
+@router.delete("/{vacancy_id}")
+async def delete_vacancy(vacancy_id: int, user: User = Depends(get_current_user)):
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    vacancy = await Vacancy.get_or_none(id=vacancy_id)
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    if vacancy.created_by_id != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only delete your own vacancies")
+
+    await vacancy.delete()
+    return {"message": "Vacancy deleted successfully"}
+
+
 @router.get("/admin/applications", response_model=list[Application_Pydantic])
 async def get_all_applications(user: User = Depends(get_current_user)):
     if user.role != "admin":
@@ -65,23 +98,66 @@ async def get_all_applications(user: User = Depends(get_current_user)):
     return await Application_Pydantic.from_queryset(Application.all().prefetch_related("vacancy"))
 
 
+@router.get("/candidates", response_model=list[Application_Pydantic])
+async def get_all_candidates(user: User = Depends(get_current_user)):
+    """
+    Получить всех кандидатов (отклики) с полной информацией о вакансиях
+    Доступно для админов и HR
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Admin or HR access required")
+    
+    applications = Application.all().prefetch_related("vacancy")
+    return await Application_Pydantic.from_queryset(applications)
+
+
 @router.post("/applications", response_model=Application_Pydantic)
 async def create_application(application_data: ApplicationCreate):
-    vacancy = await Vacancy.get_or_none(id=application_data.vacancy_id, is_active=True)
-    if not vacancy:
-        raise HTTPException(status_code=404, detail="Vacancy not found or not active")
+    vacancy = None
+    if application_data.vacancy_id:
+        vacancy = await Vacancy.get_or_none(id=application_data.vacancy_id, is_active=True)
+        if not vacancy:
+            raise HTTPException(status_code=404, detail="Vacancy not found or not active")
 
     application = await Application.create(
         vacancy=vacancy,
         applicant_name=application_data.applicant_name,
         applicant_email=application_data.applicant_email,
-        applicant_university=application_data.applicant_university,
         message=application_data.message
     )
     return await Application_Pydantic.from_tortoise_orm(application)
 
 
-@router.get("/vacancies/", response_model=list[Vacancy_Pydantic])
+@router.post("/candidates", response_model=Application_Pydantic)
+async def create_candidate(
+    candidate_data: CandidateCreate,
+    user: User = Depends(get_current_user)
+):
+    """
+    Создать кандидата вручную (для HR/админов)
+    Может быть привязан к вакансии или создан без привязки
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Admin or HR access required")
+    
+    vacancy = None
+    if candidate_data.vacancy_id:
+        vacancy = await Vacancy.get_or_none(id=candidate_data.vacancy_id, is_active=True)
+        if not vacancy:
+            raise HTTPException(status_code=404, detail="Vacancy not found or not active")
+    
+    # Создаем Application с привязкой к вакансии или без неё
+    application = await Application.create(
+        vacancy=vacancy,
+        applicant_name=candidate_data.applicant_name,
+        applicant_email=candidate_data.applicant_email,
+        message=candidate_data.message
+    )
+    
+    return await Application_Pydantic.from_tortoise_orm(application)
+
+
+@router.get("/", response_model=list[Vacancy_Pydantic])
 async def get_my_vacancies(user: User = Depends(get_current_user)):
     """
     get реквест, получает вакансии, созданные данным пользователем
@@ -108,3 +184,143 @@ async def get_applications_for_my_vacancies(user: User = Depends(get_current_use
 
     applications = await Application.filter(vacancy__created_by=user.id).select_related("vacancy")
     return [ApplicationAndId(vacancy_id=app.vacancy.id, application=app) for app in applications]
+
+
+@router.get("/{vacancy_id}/applications", response_model=list[Application_Pydantic])
+async def get_vacancy_applications(vacancy_id: int, user: User = Depends(get_current_user)):
+    """
+    Получить все отклики на конкретную вакансию
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Проверяем, что вакансия принадлежит пользователю или пользователь - админ
+    vacancy = await Vacancy.get_or_none(id=vacancy_id)
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+    
+    if vacancy.created_by_id != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only view applications for your own vacancies")
+
+    applications = await Application.filter(vacancy_id=vacancy_id)
+    return await Application_Pydantic.from_queryset(applications)
+
+
+@router.put("/applications/{application_id}", response_model=Application_Pydantic)
+async def update_application_status(
+    application_id: int, 
+    status_data: dict, 
+    user: User = Depends(get_current_user)
+):
+    """
+    Обновить статус отклика
+    """
+    if user.role not in ["admin", "hr"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    application = await Application.get_or_none(id=application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Проверяем, что отклик относится к вакансии пользователя или пользователь - админ
+    if application.vacancy.created_by_id != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only update applications for your own vacancies")
+
+    application.status = status_data.get("status", application.status)
+    await application.save()
+    
+    return await Application_Pydantic.from_tortoise_orm(application)
+
+
+@router.post("/bitrix-form-json")
+async def receive_bitrix_form_json(vacancy_data: VacancyCreate):
+    # Тут вы можете сохранить данные в БД, лог, отправить в Telegram и т.д.
+    # Для Bitrix создаем вакансию без привязки к пользователю (created_by_id=None)
+    vacancy = await Vacancy.create(
+        vacancy_title=vacancy_data.vacancy_title,
+        company_logo=vacancy_data.company_logo,
+        company_name=vacancy_data.company_name,
+        platform=vacancy_data.platform,
+        specialty=vacancy_data.specialty,
+        responsibilities=vacancy_data.responsibilities,
+        requirements=vacancy_data.requirements,
+        employment_type=vacancy_data.employment_type,
+        schedule=vacancy_data.schedule,
+        location=vacancy_data.location,
+        location_yandex_link=vacancy_data.location_yandex_link,
+        probation=vacancy_data.probation,
+        salary=vacancy_data.salary,
+        extra_info=vacancy_data.extra_info,
+        link_text=vacancy_data.link_text,
+        company_website=vacancy_data.company_website,
+        promo_video=vacancy_data.promo_video,
+        status="pending",  # Bitrix вакансии всегда pending
+        created_by_id=None  # Bitrix не привязан к пользователю
+    )
+    return {"status": "ok", "received": vacancy_data.dict()}
+
+
+@router.post('/bitrix-form')
+async def receive_bitrix_form(
+    vacancy_title: str = Form(...),
+    company_logo: Optional[UploadFile] = File(None),
+    company_name: str = Form(...),
+    platform: str = Form(...),
+    specialty: str = Form(...),
+    responsibilities: str = Form(...),  # JSON string from form
+    requirements: str = Form(...),  # JSON string from form
+    employment_type: Optional[str] = Form(None),
+    schedule: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    location_yandex_link: Optional[str] = Form(None),
+    probation: Optional[str] = Form(None),
+    salary: Optional[str] = Form(None),
+    extra_info: Optional[str] = Form(None),
+    link_text: Optional[str] = Form(None),
+    company_website: Optional[str] = Form(None),
+    promo_video: Optional[str] = Form(None),
+):
+    import json
+    
+    # Parse JSON strings for responsibilities and requirements
+    try:
+        responsibilities_list = json.loads(responsibilities) if responsibilities else []
+        requirements_list = json.loads(requirements) if requirements else []
+    except json.JSONDecodeError:
+        # If JSON parsing fails, treat as single item lists
+        responsibilities_list = [responsibilities] if responsibilities else []
+        requirements_list = [requirements] if requirements else []
+    
+    # Handle file upload for company logo
+    company_logo_url = None
+    if company_logo:
+        # Here you would typically save the file and get a URL
+        # For now, we'll just store the filename
+        company_logo_url = company_logo.filename
+    
+    form_data = {
+        "vacancy_title": vacancy_title,
+        "company_logo": company_logo_url,
+        "company_name": company_name,
+        "platform": platform,
+        "specialty": specialty,
+        "responsibilities": responsibilities_list,
+        "requirements": requirements_list,
+        "employment_type": employment_type,
+        "schedule": schedule,
+        "location": location,
+        "location_yandex_link": location_yandex_link,
+        "probation": probation,
+        "salary": salary,
+        "extra_info": extra_info,
+        "link_text": link_text,
+        "company_website": company_website,
+        "promo_video": promo_video,
+    }
+    
+    vacancy = await Vacancy.create(
+        created_by_id=None,  # Bitrix не привязан к пользователю
+        status="pending",
+        **form_data
+    )
+    return {"status": "ok", "received": form_data}

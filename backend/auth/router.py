@@ -12,7 +12,7 @@ from auth.models import User
 
 security = HTTPBearer()
 
-router = APIRouter()
+router = APIRouter(tags=['auth'])
 
 @router.get("/me")
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -55,13 +55,13 @@ async def register_user(user_data: UserRegister):
             detail="Email already registered"
         )
 
-    if user_data.role == "admin":
-        admin_count = await User.filter(role="admin").count()
-        if admin_count > 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Admin user already exists"
-            )
+    # if user_data.role == "admin":
+    #     admin_count = await User.filter(role="admin").count()
+    #     if admin_count > 0:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             detail="Admin user already exists"
+    #         )
 
     try:
         user = await User.create(

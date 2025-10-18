@@ -1,0 +1,52 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.python-version
+
+# Package/build artifacts
+build/
+dist/
+site/
+*.egg-info/
+.eggs/
+.wheels/
+
+# Coverage / testing
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+coverage.xml
+.pytest_cache/
+.hypothesis/
+
+# Type checkers / linters
+.mypy_cache/
+.pytype/
+.ruff_cache/
+
+# Logs
+logs/
+*.log
+
+# SQLite / local DBs
+*.sqlite3
+db.sqlite3
+db.sqlite3-shm
+db.sqlite3-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDE
+.vscode/
+.idea/
