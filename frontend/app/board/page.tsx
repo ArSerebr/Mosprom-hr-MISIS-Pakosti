@@ -386,61 +386,63 @@ export default function BoardPage() {
 
   return (
     <Container size="xl" py="md">
-      {/* Заголовок с фильтрами и кнопкой на одной строке */}
-      <Group justify="space-between" mb="xl">
-        <Group gap="md">
-          {/* Активные фильтры */}
-          {(selectedCompany || selectedVacancy) && (
-            <Group gap="sm">
-              <Text size="sm" fw={500}>Активные фильтры:</Text>
-              {selectedCompany && (
-                <Badge 
-                  color="blue" 
-                  variant="light" 
-                  rightSection={
-                    <IconX 
-                      size={12} 
-                      style={{ cursor: 'pointer' }} 
-                      onClick={() => setSelectedCompany(null)}
-                    />
-                  }
+      {/* Панель управления с отступом от левого меню */}
+      <div style={{ marginLeft: '336px', marginBottom: '24px' }}>
+        <Group justify="space-between">
+          <Group gap="md">
+            {/* Активные фильтры */}
+            {(selectedCompany || selectedVacancy) && (
+              <Group gap="sm">
+                <Text size="sm" fw={500}>Активные фильтры:</Text>
+                {selectedCompany && (
+                  <Badge 
+                    color="blue" 
+                    variant="light" 
+                    rightSection={
+                      <IconX 
+                        size={12} 
+                        style={{ cursor: 'pointer' }} 
+                        onClick={() => setSelectedCompany(null)}
+                      />
+                    }
+                  >
+                    Компания: {selectedCompany}
+                  </Badge>
+                )}
+                {selectedVacancy && (
+                  <Badge 
+                    color="green" 
+                    variant="light" 
+                    rightSection={
+                      <IconX 
+                        size={12} 
+                        style={{ cursor: 'pointer' }} 
+                        onClick={() => setSelectedVacancy(null)}
+                      />
+                    }
+                  >
+                    Должность: {selectedVacancy}
+                  </Badge>
+                )}
+                <Button 
+                  variant="subtle" 
+                  size="xs" 
+                  color="gray"
+                  onClick={() => {
+                    setSelectedCompany(null);
+                    setSelectedVacancy(null);
+                  }}
                 >
-                  Компания: {selectedCompany}
-                </Badge>
-              )}
-              {selectedVacancy && (
-                <Badge 
-                  color="green" 
-                  variant="light" 
-                  rightSection={
-                    <IconX 
-                      size={12} 
-                      style={{ cursor: 'pointer' }} 
-                      onClick={() => setSelectedVacancy(null)}
-                    />
-                  }
-                >
-                  Должность: {selectedVacancy}
-                </Badge>
-              )}
-              <Button 
-                variant="subtle" 
-                size="xs" 
-                color="gray"
-                onClick={() => {
-                  setSelectedCompany(null);
-                  setSelectedVacancy(null);
-                }}
-              >
-                Очистить все
-              </Button>
-            </Group>
-          )}
+                  Очистить все
+                </Button>
+              </Group>
+            )}
+          </Group>
+          <Button leftSection={<IconPlus size={16} />} onClick={open} color="blue">
+            Добавить кандидата
+          </Button>
         </Group>
-        <Button leftSection={<IconPlus size={16} />} onClick={open} color="blue">
-          Добавить кандидата
-        </Button>
-      </Group>
+      </div>
 
       {/* Основной контент с боковой панелью */}
       <div style={{ display: 'flex', gap: '16px' }}>
@@ -581,12 +583,21 @@ export default function BoardPage() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div style={{ 
-              display: 'flex', 
-              gap: '16px', 
-              minWidth: 'max-content',
-              paddingBottom: '16px'
-            }}>
+            <Paper 
+              p="md" 
+              radius="md" 
+              withBorder
+              style={{ 
+                backgroundColor: '#fafafa',
+                minHeight: '600px'
+              }}
+            >
+              <div style={{ 
+                display: 'flex', 
+                gap: '16px', 
+                minWidth: 'max-content',
+                paddingBottom: '16px'
+              }}>
               {columns.map((column) => (
                 <ColumnContainer key={column.id} column={column}>
                   <Group justify="space-between" mb="md">
@@ -612,7 +623,8 @@ export default function BoardPage() {
                   </SortableContext>
                 </ColumnContainer>
               ))}
-            </div>
+              </div>
+            </Paper>
 
             <DragOverlay>
               {activeCandidate ? (
