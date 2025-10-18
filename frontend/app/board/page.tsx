@@ -387,7 +387,7 @@ export default function BoardPage() {
   return (
     <Container size="xl" py="md">
       {/* Панель управления с отступом от левого меню */}
-      <div style={{ marginLeft: '336px', marginBottom: '24px' }}>
+      <div style={{ marginLeft: '20px', marginBottom: '24px' }}>
         <Group justify="space-between">
           <Group gap="md">
             {/* Активные фильтры */}
@@ -577,28 +577,19 @@ export default function BoardPage() {
         </nav>
 
         {/* Основная область с канбан доской - с отступом от левого меню */}
-        <div style={{ flex: 1, marginLeft: '336px', overflowX: 'auto' }}>
-          <Paper 
-            p="md" 
-            radius="md" 
-            withBorder
-            style={{ 
-              backgroundColor: '#fafafa',
-              minHeight: '600px'
-            }}
+        <div style={{ flex: 1, marginLeft: '20px', overflowX: 'auto' }}>
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
-            <DndContext
-              sensors={sensors}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <div style={{ 
-                display: 'flex', 
-                gap: '16px', 
-                minWidth: 'max-content',
-                width: 'max-content',
-                paddingBottom: '16px'
-              }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: '16px', 
+              minWidth: 'max-content',
+              width: 'max-content',
+              paddingBottom: '16px'
+            }}>
               {columns.map((column) => (
                 <ColumnContainer key={column.id} column={column}>
                   <Group justify="space-between" mb="md">
@@ -624,21 +615,20 @@ export default function BoardPage() {
                   </SortableContext>
                 </ColumnContainer>
               ))}
-              </div>
+            </div>
 
-              <DragOverlay>
-                {activeCandidate ? (
-                  <CandidateCard
-                    candidate={activeCandidate}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                    onMove={() => {}}
-                    isDragging
-                  />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          </Paper>
+            <DragOverlay>
+              {activeCandidate ? (
+                <CandidateCard
+                  candidate={activeCandidate}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                  onMove={() => {}}
+                  isDragging
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
       </div>
 
