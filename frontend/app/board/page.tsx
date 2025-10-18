@@ -34,6 +34,9 @@ import {
   IconStar,
   IconEdit,
   IconGripVertical,
+  IconChevronDown,
+  IconChevronRight,
+  IconX,
 } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
@@ -214,6 +217,7 @@ export default function BoardPage() {
   const [activeCandidate, setActiveCandidate] = useState<BoardCandidate | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedVacancy, setSelectedVacancy] = useState<string | null>(null);
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -225,6 +229,21 @@ export default function BoardPage() {
 
   // Получаем уникальные компании
   const companies = Array.from(new Set(candidates.map(c => c.company)));
+
+  // Функции для управления развернутыми компаниями
+  const toggleCompany = (company: string) => {
+    setExpandedCompanies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(company)) {
+        newSet.delete(company);
+      } else {
+        newSet.add(company);
+      }
+      return newSet;
+    });
+  };
+
+  const isCompanyExpanded = (company: string) => expandedCompanies.has(company);
 
   // Фильтруем кандидатов по выбранным фильтрам
   const filteredCandidates = candidates.filter(candidate => {
@@ -368,84 +387,170 @@ export default function BoardPage() {
         </Button>
       </Group>
 
+      {/* Активные фильтры */}
+      {(selectedCompany || selectedVacancy) && (
+        <Paper p="sm" radius="md" withBorder mb="md" style={{ backgroundColor: '#f8f9fa' }}>
+          <Group gap="sm">
+            <Text size="sm" fw={500}>Активные фильтры:</Text>
+            {selectedCompany && (
+              <Badge 
+                color="blue" 
+                variant="light" 
+                rightSection={
+                  <IconX 
+                    size={12} 
+                    style={{ cursor: 'pointer' }} 
+                    onClick={() => setSelectedCompany(null)}
+                  />
+                }
+              >
+                Компания: {selectedCompany}
+              </Badge>
+            )}
+            {selectedVacancy && (
+              <Badge 
+                color="green" 
+                variant="light" 
+                rightSection={
+                  <IconX 
+                    size={12} 
+                    style={{ cursor: 'pointer' }} 
+                    onClick={() => setSelectedVacancy(null)}
+                  />
+                }
+              >
+                Должность: {selectedVacancy}
+              </Badge>
+            )}
+            <Button 
+              variant="subtle" 
+              size="xs" 
+              color="gray"
+              onClick={() => {
+                setSelectedCompany(null);
+                setSelectedVacancy(null);
+              }}
+            >
+              Очистить все
+            </Button>
+          </Group>
+        </Paper>
+      )}
+
       {/* Основной контент с боковой панелью */}
       <div style={{ display: 'flex', gap: '16px' }}>
-        {/* Левая боковая панель с фильтрами - прижата к левому краю */}
-        <div style={{ position: 'fixed', left: '0', top: '60px', bottom: '0', width: '300px', overflowY: 'auto', zIndex: 100 }}>
-          <Paper p="md" radius="md" withBorder style={{ height: '100%', margin: '16px' }}>
-            <Stack gap="md">
-              <Text fw={600} size="sm">Фильтры</Text>
-              
-              {/* Вложенный список фильтров */}
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                {companies.map(company => {
-                  const companyCandidates = candidates.filter(c => c.company === company);
-                  const companyPositions = Array.from(new Set(companyCandidates.map(c => c.position)));
-                  
-                  return (
-                    <div key={company} style={{ marginBottom: '12px' }}>
-                      <Text fw={500} size="sm" mb="xs" style={{ cursor: 'pointer' }}
-                            onClick={() => setSelectedCompany(selectedCompany === company ? null : company)}>
-                        {selectedCompany === company ? '▼' : '▶'} {company}
-                      </Text>
-                      
-                      {selectedCompany === company && (
-                        <div style={{ marginLeft: '16px', marginTop: '8px' }}>
-                          {companyPositions.map(position => (
-                            <div key={position} style={{ marginBottom: '4px' }}>
-                              <Text size="xs" 
-                                    style={{ 
-                                      cursor: 'pointer',
-                                      color: selectedVacancy === position ? '#228be6' : '#666',
-                                      fontWeight: selectedVacancy === position ? 500 : 400
-                                    }}
-                                    onClick={() => setSelectedVacancy(selectedVacancy === position ? null : position)}>
-                                • {position}
-                              </Text>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+        {/* Навигационное меню с фильтрами - прижато к левому краю */}
+        <nav style={{ 
+          position: 'fixed', 
+          left: '0', 
+          top: '60px', 
+          bottom: '0', 
+          width: '320px', 
+          overflowY: 'auto', 
+          zIndex: 100,
+          backgroundColor: '#ffffff',
+          borderRight: '1px solid #e9ecef',
+          boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ padding: '16px' }}>
+            <Text fw={600} size="sm" mb="md">Фильтры по компаниям</Text>
+            
+            {/* Список компаний в стиле скриншота */}
+            <Stack gap="sm">
+              {companies.map(company => {
+                const companyCandidates = candidates.filter(c => c.company === company);
+                const companyPositions = Array.from(new Set(companyCandidates.map(c => c.position)));
+                const isExpanded = isCompanyExpanded(company);
+                
+                return (
+                  <div key={company}>
+                    {/* Заголовок компании */}
+                    <Paper 
+                      p="sm" 
+                      radius="md" 
+                      withBorder 
+                      style={{ 
+                        cursor: 'pointer',
+                        backgroundColor: selectedCompany === company ? '#f0f9ff' : '#ffffff',
+                        borderColor: selectedCompany === company ? '#228be6' : '#e9ecef',
+                        transition: 'all 0.2s ease-in-out',
+                        marginBottom: '4px'
+                      }}
+                      onClick={() => toggleCompany(company)}
+                    >
+                      <Group justify="space-between">
+                        <Group gap="xs">
+                          {isExpanded ? (
+                            <IconChevronDown size={16} color="#666" />
+                          ) : (
+                            <IconChevronRight size={16} color="#666" />
+                          )}
+                          <Text fw={500} size="sm">{company}</Text>
+                        </Group>
+                        <Badge size="sm" variant="light" color="gray">
+                          {companyPositions.length} отдел{companyPositions.length !== 1 ? 'а' : ''}
+                        </Badge>
+                      </Group>
+                    </Paper>
+                    
+                    {/* Подотделы с плавной анимацией */}
+                    <div style={{ 
+                      overflow: 'hidden',
+                      transition: 'max-height 0.3s ease-in-out, opacity 0.2s ease-in-out',
+                      maxHeight: isExpanded ? '300px' : '0',
+                      opacity: isExpanded ? 1 : 0,
+                      marginLeft: '16px'
+                    }}>
+                      <Stack gap="xs" style={{ paddingTop: '8px' }}>
+                        {companyPositions.map(position => (
+                          <Paper 
+                            key={position}
+                            p="xs" 
+                            radius="sm" 
+                            withBorder 
+                            style={{ 
+                              cursor: 'pointer',
+                              backgroundColor: selectedVacancy === position ? '#f0fdf4' : '#ffffff',
+                              borderColor: selectedVacancy === position ? '#22c55e' : '#f1f5f9',
+                              transition: 'all 0.2s ease-in-out',
+                              borderLeft: selectedVacancy === position ? '3px solid #22c55e' : '3px solid transparent'
+                            }}
+                            onClick={() => setSelectedVacancy(selectedVacancy === position ? null : position)}
+                          >
+                            <Text size="xs" fw={selectedVacancy === position ? 500 : 400}>
+                              {position}
+                            </Text>
+                          </Paper>
+                        ))}
+                      </Stack>
                     </div>
-                  );
-                })}
-              </div>
-
-              <Button 
-                variant="light" 
-                size="xs" 
-                fullWidth
-                onClick={() => {
-                  setSelectedCompany(null);
-                  setSelectedVacancy(null);
-                }}
-              >
-                Сбросить фильтры
-              </Button>
-
-              <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '16px' }}>
-                <Text fw={600} size="sm" mb="sm">Статистика</Text>
-                <Stack gap="sm">
-                  <Badge color="blue" variant="light" fullWidth>
-                    Всего: {candidates.length}
-                  </Badge>
-                  <Badge color="green" variant="light" fullWidth>
-                    Активные: {candidates.filter(c => !['rejected', 'accepted'].includes(c.status)).length}
-                  </Badge>
-                  <Badge color="red" variant="light" fullWidth>
-                    Отказы: {candidates.filter(c => c.status === 'rejected').length}
-                  </Badge>
-                  <Badge color="green" variant="light" fullWidth>
-                    Приняты: {candidates.filter(c => c.status === 'accepted').length}
-                  </Badge>
-                </Stack>
-              </div>
+                  </div>
+                );
+              })}
             </Stack>
-          </Paper>
-        </div>
+
+            <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '16px', marginTop: '16px' }}>
+              <Text fw={600} size="sm" mb="sm">Статистика</Text>
+              <Stack gap="xs">
+                <Badge color="blue" variant="light" fullWidth>
+                  Всего: {candidates.length}
+                </Badge>
+                <Badge color="green" variant="light" fullWidth>
+                  Активные: {candidates.filter(c => !['rejected', 'accepted'].includes(c.status)).length}
+                </Badge>
+                <Badge color="red" variant="light" fullWidth>
+                  Отказы: {candidates.filter(c => c.status === 'rejected').length}
+                </Badge>
+                <Badge color="green" variant="light" fullWidth>
+                  Приняты: {candidates.filter(c => c.status === 'accepted').length}
+                </Badge>
+              </Stack>
+            </div>
+          </div>
+        </nav>
 
         {/* Основная область с канбан доской - с отступом от левого меню */}
-        <div style={{ flex: 1, overflowX: 'auto', marginLeft: '316px' }}>
+        <div style={{ flex: 1, overflowX: 'auto', marginLeft: '336px' }}>
           <DndContext
             sensors={sensors}
             onDragStart={handleDragStart}
@@ -675,9 +780,15 @@ function CandidateCard({ candidate, onEdit, onDelete, isDragging = false }: Cand
       style={{ 
         cursor: 'grab',
         opacity: isDragging ? 0.5 : 1,
-        transform: isDragging ? 'rotate(5deg)' : 'none',
+        transform: isDragging ? 'rotate(3deg) scale(1.02)' : 'none',
         minWidth: '280px',
-        width: '100%'
+        width: '100%',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: isDragging ? '0 8px 25px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
+        ':hover': {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          transform: 'translateY(-2px)'
+        }
       }}
     >
       <Stack gap="xs">
@@ -699,16 +810,36 @@ function CandidateCard({ candidate, onEdit, onDelete, isDragging = false }: Cand
             </div>
           </Group>
           
-          {showActions && !isDragging && (
+          <div style={{ 
+            transition: 'opacity 0.3s ease-in-out, transform 0.2s ease-in-out',
+            opacity: showActions && !isDragging ? 1 : 0,
+            transform: showActions && !isDragging ? 'translateX(0)' : 'translateX(10px)',
+            pointerEvents: showActions && !isDragging ? 'auto' : 'none'
+          }}>
             <Group gap="xs">
-              <ActionIcon size="sm" variant="subtle" onClick={onEdit}>
+              <ActionIcon 
+                size="sm" 
+                variant="subtle" 
+                onClick={onEdit}
+                style={{ 
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
                 <IconEdit size={14} />
               </ActionIcon>
-              <ActionIcon size="sm" variant="subtle" color="red" onClick={onDelete}>
+              <ActionIcon 
+                size="sm" 
+                variant="subtle" 
+                color="red" 
+                onClick={onDelete}
+                style={{ 
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
                 <IconTrash size={14} />
               </ActionIcon>
             </Group>
-          )}
+          </div>
         </Group>
 
         <Group gap="xs">
