@@ -387,7 +387,7 @@ export default function BoardPage() {
   return (
     <Container size="xl" py="md">
       {/* Панель управления с отступом от левого меню */}
-      <div style={{ marginLeft: '20px', marginBottom: '24px' }}>
+      <div style={{ marginLeft: '340px', marginBottom: '24px' }}>
         <Group justify="space-between">
           <Group gap="md">
             {/* Активные фильтры */}
@@ -577,7 +577,7 @@ export default function BoardPage() {
         </nav>
 
         {/* Основная область с канбан доской - с отступом от левого меню */}
-        <div style={{ flex: 1, marginLeft: '20px', overflowX: 'auto' }}>
+        <div style={{ flex: 1, marginLeft: '340px', overflowX: 'auto' }}>
           <DndContext
             sensors={sensors}
             onDragStart={handleDragStart}
