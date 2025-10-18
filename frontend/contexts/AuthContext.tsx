@@ -115,8 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, password: string, name: string, role: 'admin' | 'hr' | 'university') => {
     try {
       const API_URL = typeof window !== 'undefined' 
-        ? (window as any).ENV?.NEXT_PUBLIC_API_URL || "http://localhost:7011/api"
-        : "http://localhost:7011/api";
+        ? (window as any).ENV?.NEXT_PUBLIC_API_URL || "http://robofirst.ru:7011/api"
+        : "http://robofirst.ru:7011/api";
         
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
