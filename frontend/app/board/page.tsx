@@ -368,10 +368,11 @@ export default function BoardPage() {
         </Button>
       </Group>
 
-      {/* Боковое меню с фильтрами */}
-      <Paper p="md" mb="md" radius="md" withBorder>
-        <Group align="flex-start" gap="xl">
-          <Stack gap="sm" style={{ minWidth: '200px' }}>
+      {/* Основной контент с боковой панелью */}
+      <Group align="flex-start" gap="md">
+        {/* Левая боковая панель с фильтрами */}
+        <Paper p="md" radius="md" withBorder style={{ minWidth: '280px', maxWidth: '320px' }}>
+          <Stack gap="md">
             <Text fw={600} size="sm">Фильтры</Text>
             
             <Select
@@ -402,74 +403,81 @@ export default function BoardPage() {
             >
               Сбросить фильтры
             </Button>
-          </Stack>
 
-          <Stack gap="xs" style={{ flex: 1 }}>
-            <Text fw={600} size="sm">Статистика</Text>
-            <Group gap="md">
-              <Badge color="blue" variant="light">
-                Всего: {candidates.length}
-              </Badge>
-              <Badge color="green" variant="light">
-                Активные: {candidates.filter(c => !['rejected', 'accepted'].includes(c.status)).length}
-              </Badge>
-              <Badge color="red" variant="light">
-                Отказы: {candidates.filter(c => c.status === 'rejected').length}
-              </Badge>
-              <Badge color="green" variant="light">
-                Приняты: {candidates.filter(c => c.status === 'accepted').length}
-              </Badge>
-            </Group>
-          </Stack>
-        </Group>
-      </Paper>
-
-      {/* Канбан доска */}
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 6 }} spacing="md">
-          {columns.map((column) => (
-            <ColumnContainer key={column.id} column={column}>
-              <Group justify="space-between" mb="md">
-                <Text fw={600} size="sm" c={column.color}>
-                  {column.title}
-                </Text>
-                <Badge color={column.color} variant="light">
-                  {column.candidates.length}
+            <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '16px' }}>
+              <Text fw={600} size="sm" mb="sm">Статистика</Text>
+              <Stack gap="sm">
+                <Badge color="blue" variant="light" fullWidth>
+                  Всего: {candidates.length}
                 </Badge>
-              </Group>
-              
-              <SortableContext items={column.candidates.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                <Stack gap="sm">
-                  {column.candidates.map((candidate) => (
-                    <SortableCandidateCard
-                      key={candidate.id}
-                      candidate={candidate}
-                      onEdit={() => openEditModal(candidate)}
-                      onDelete={() => handleDeleteCandidate(candidate.id)}
-                    />
-                  ))}
-                </Stack>
-              </SortableContext>
-            </ColumnContainer>
-          ))}
-        </SimpleGrid>
+                <Badge color="green" variant="light" fullWidth>
+                  Активные: {candidates.filter(c => !['rejected', 'accepted'].includes(c.status)).length}
+                </Badge>
+                <Badge color="red" variant="light" fullWidth>
+                  Отказы: {candidates.filter(c => c.status === 'rejected').length}
+                </Badge>
+                <Badge color="green" variant="light" fullWidth>
+                  Приняты: {candidates.filter(c => c.status === 'accepted').length}
+                </Badge>
+              </Stack>
+            </div>
+          </Stack>
+        </Paper>
 
-        <DragOverlay>
-          {activeCandidate ? (
-            <CandidateCard
-              candidate={activeCandidate}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              onMove={() => {}}
-              isDragging
-            />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+        {/* Основная область с канбан доской */}
+        <div style={{ flex: 1, overflowX: 'auto' }}>
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div style={{ 
+              display: 'flex', 
+              gap: '16px', 
+              minWidth: 'max-content',
+              paddingBottom: '16px'
+            }}>
+              {columns.map((column) => (
+                <ColumnContainer key={column.id} column={column}>
+                  <Group justify="space-between" mb="md">
+                    <Text fw={600} size="sm" c={column.color}>
+                      {column.title}
+                    </Text>
+                    <Badge color={column.color} variant="light">
+                      {column.candidates.length}
+                    </Badge>
+                  </Group>
+                  
+                  <SortableContext items={column.candidates.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                    <Stack gap="sm">
+                      {column.candidates.map((candidate) => (
+                        <SortableCandidateCard
+                          key={candidate.id}
+                          candidate={candidate}
+                          onEdit={() => openEditModal(candidate)}
+                          onDelete={() => handleDeleteCandidate(candidate.id)}
+                        />
+                      ))}
+                    </Stack>
+                  </SortableContext>
+                </ColumnContainer>
+              ))}
+            </div>
+
+            <DragOverlay>
+              {activeCandidate ? (
+                <CandidateCard
+                  candidate={activeCandidate}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                  onMove={() => {}}
+                  isDragging
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+      </Group>
 
       {/* Модальное окно для добавления/редактирования кандидата */}
       <Modal
@@ -572,7 +580,11 @@ function ColumnContainer({ column, children }: ColumnContainerProps) {
       p="md"
       radius="md"
       withBorder
-      style={{ minHeight: '500px' }}
+      style={{ 
+        minHeight: '500px',
+        minWidth: '320px',
+        width: '320px'
+      }}
     >
       {children}
     </Paper>
@@ -635,7 +647,7 @@ function CandidateCard({ candidate, onEdit, onDelete, isDragging = false }: Cand
 
   return (
     <Card
-      p="sm"
+      p="md"
       radius="md"
       withBorder
       onMouseEnter={() => setShowActions(true)}
@@ -644,6 +656,8 @@ function CandidateCard({ candidate, onEdit, onDelete, isDragging = false }: Cand
         cursor: 'grab',
         opacity: isDragging ? 0.5 : 1,
         transform: isDragging ? 'rotate(5deg)' : 'none',
+        minWidth: '280px',
+        width: '100%'
       }}
     >
       <Stack gap="xs">
