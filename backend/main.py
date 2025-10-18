@@ -4,6 +4,7 @@ from tortoise import Tortoise
 from auth.router import router as auth_router
 from vacancies.router import router as vacancies_router
 from internship.router import router as internship_router
+from chats.router import router as chats_router
 from database import init_db
 
 
@@ -18,3 +19,4 @@ app = FastAPI(title="HR Application", lifespan=lifespan)
 app.include_router(auth_router, prefix="/auth")
 app.include_router(vacancies_router, prefix="")
 app.include_router(internship_router, prefix="")
+app.include_router(chats_router, prefix="")

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel
@@ -7,14 +8,27 @@ from vacancies.models import Vacancy, Application
 
 
 Vacancy_Pydantic = pydantic_model_creator(Vacancy, name="Vacancy")
-Application_Pydantic = pydantic_model_creator(Application, name="Application")
+Application_Pydantic = pydantic_model_creator(Application, name="Application", include=("id", "created_by.id", "applicant_name", "applicant_email", "applicant_university", "message", "status", "created_at"))
 
 VacancyCreate_Pydantic = pydantic_model_creator(Vacancy, name="VacancyCreate", exclude_readonly=True)
 ApplicationCreate_Pydantic = pydantic_model_creator(Application, name="ApplicationCreate", exclude_readonly=True)
 
+class ApplicationWithApplicantId(BaseModel):
+    id: int
+    applicant_user_id: Optional[int]  # This will be the ID of the applicant
+    applicant_name: str
+    applicant_email: str
+    applicant_university: str
+    message: Optional[str]
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class ApplicationAndId(BaseModel):
     vacancy_id: int
-    application: Application_Pydantic
+    application: ApplicationWithApplicantId
 
 class VacancyCreate(BaseModel):
     vacancy_title: str

@@ -11,7 +11,8 @@ from vacancies.schemas import (
     VacancyCreate,
     VacancyUpdate,
     ApplicationCreate,
-    ApplicationAndId
+    ApplicationAndId,
+    ApplicationWithApplicantId
 )
 
 
@@ -82,7 +83,7 @@ async def get_all_applications(user: User = Depends(get_current_user)):
 
 
 @router.post("/applications", response_model=Application_Pydantic)
-async def create_application(application_data: ApplicationCreate):
+async def create_application(application_data: ApplicationCreate, user = Depends(get_current_user)):
     vacancy = await Vacancy.get_or_none(id=application_data.vacancy_id, is_active=True)
     if not vacancy:
         raise HTTPException(status_code=404, detail="Vacancy not found or not active")
@@ -92,7 +93,8 @@ async def create_application(application_data: ApplicationCreate):
         applicant_name=application_data.applicant_name,
         applicant_email=application_data.applicant_email,
         applicant_university=application_data.applicant_university,
-        message=application_data.message
+        message=application_data.message,
+        created_by=user
     )
     return await Application_Pydantic.from_tortoise_orm(application)
 
@@ -122,9 +124,30 @@ async def get_applications_for_my_vacancies(user: User = Depends(get_current_use
     if user.role not in ["admin", "hr"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    applications = await Application.filter(vacancy__created_by=user.id).select_related("vacancy")
-    return [ApplicationAndId(vacancy_id=app.vacancy.id, application=app) for app in applications]
+    applications = await Application.filter(vacancy__created_by=user.id).prefetch_related("created_by", "vacancy")
 
+    result = []
+    for app in applications:
+        application_with_id = ApplicationWithApplicantId(
+            id=app.id,
+            applicant_user_id=app.created_by.id if app.created_by else None,
+            applicant_name=app.applicant_name,
+            applicant_email=app.applicant_email,
+            applicant_university=app.applicant_university,
+            message=app.message,
+            status=app.status,
+            created_at=app.created_at
+        )
+        result.append(ApplicationAndId(vacancy_id=app.vacancy.id, application=application_with_id))
+
+    return result
+
+@router.get("/my_applications", response_model=list[ApplicationAndId])
+async def get_my_applications(user: User = Depends(get_current_user)):
+
+    applications = await Application.filter(created_by=user).select_related("vacancy")
+
+    return [ApplicationAndId(vacancy_id=app.vacancy.id, application=app) for app in applications]
 
 @router.post("/bitrix-form-json")
 async def receive_bitrix_form_json(vacancy_data: VacancyCreate):

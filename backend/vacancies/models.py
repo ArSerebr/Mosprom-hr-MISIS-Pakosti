@@ -35,6 +35,7 @@ class Application(models.Model):
     message = fields.TextField(null=True)
     status = fields.CharField(max_length=20, default="pending")
     created_at = fields.DatetimeField(auto_now_add=True)
+    created_by = fields.ForeignKeyField("models.User", related_name="applications1", null=True)
 
 
 
