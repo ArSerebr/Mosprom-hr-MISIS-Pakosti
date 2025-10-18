@@ -7,6 +7,7 @@ services:
       - "7011:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - CORS_ORIGINS=http://robofirst.ru:7012,https://robofirst.ru:7012
     volumes:
       - backend_data:/app/data
     restart: unless-stopped
@@ -19,7 +20,7 @@ services:
       - "7012:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:7011/api
+      - NEXT_PUBLIC_API_URL=http://robofirst.ru:7011/api
     depends_on:
       - backend
     restart: unless-stopped
