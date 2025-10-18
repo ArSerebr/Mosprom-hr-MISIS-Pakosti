@@ -5,8 +5,8 @@
  */
 
 const API_URL = typeof window !== 'undefined' 
-  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-  : "http://localhost:8000/api";
+  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || "http://localhost:7011/api"
+  : "http://localhost:7011/api";
 
 // Типы для авторизации
 export interface User {

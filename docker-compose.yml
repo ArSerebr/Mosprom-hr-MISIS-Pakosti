@@ -19,7 +19,7 @@ services:
       - "7012:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_API_URL=http://localhost:7011/api
     depends_on:
       - backend
     restart: unless-stopped
