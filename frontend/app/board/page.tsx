@@ -577,20 +577,21 @@ export default function BoardPage() {
         </nav>
 
         {/* Основная область с канбан доской - с отступом от левого меню */}
-        <div style={{ flex: 1, overflowX: 'auto', marginLeft: '336px' }}>
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+        <div style={{ flex: 1, marginLeft: '336px' }}>
+          <Paper 
+            p="md" 
+            radius="md" 
+            withBorder
+            style={{ 
+              backgroundColor: '#fafafa',
+              minHeight: '600px',
+              overflowX: 'auto'
+            }}
           >
-            <Paper 
-              p="md" 
-              radius="md" 
-              withBorder
-              style={{ 
-                backgroundColor: '#fafafa',
-                minHeight: '600px'
-              }}
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
             >
               <div style={{ 
                 display: 'flex', 
@@ -624,20 +625,20 @@ export default function BoardPage() {
                 </ColumnContainer>
               ))}
               </div>
-            </Paper>
 
-            <DragOverlay>
-              {activeCandidate ? (
-                <CandidateCard
-                  candidate={activeCandidate}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                  onMove={() => {}}
-                  isDragging
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+              <DragOverlay>
+                {activeCandidate ? (
+                  <CandidateCard
+                    candidate={activeCandidate}
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                    onMove={() => {}}
+                    isDragging
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </Paper>
         </div>
       </div>
 
