@@ -369,63 +369,83 @@ export default function BoardPage() {
       </Group>
 
       {/* Основной контент с боковой панелью */}
-      <Group align="flex-start" gap="md">
-        {/* Левая боковая панель с фильтрами */}
-        <Paper p="md" radius="md" withBorder style={{ minWidth: '280px', maxWidth: '320px' }}>
-          <Stack gap="md">
-            <Text fw={600} size="sm">Фильтры</Text>
-            
-            <Select
-              label="Компания"
-              placeholder="Все компании"
-              clearable
-              value={selectedCompany}
-              onChange={setSelectedCompany}
-              data={companies.map(company => ({ value: company, label: company }))}
-            />
+      <div style={{ display: 'flex', gap: '16px' }}>
+        {/* Левая боковая панель с фильтрами - прижата к левому краю */}
+        <div style={{ position: 'fixed', left: '0', top: '60px', bottom: '0', width: '300px', overflowY: 'auto', zIndex: 100 }}>
+          <Paper p="md" radius="md" withBorder style={{ height: '100%', margin: '16px' }}>
+            <Stack gap="md">
+              <Text fw={600} size="sm">Фильтры</Text>
+              
+              {/* Вложенный список фильтров */}
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {companies.map(company => {
+                  const companyCandidates = candidates.filter(c => c.company === company);
+                  const companyPositions = Array.from(new Set(companyCandidates.map(c => c.position)));
+                  
+                  return (
+                    <div key={company} style={{ marginBottom: '12px' }}>
+                      <Text fw={500} size="sm" mb="xs" style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedCompany(selectedCompany === company ? null : company)}>
+                        {selectedCompany === company ? '▼' : '▶'} {company}
+                      </Text>
+                      
+                      {selectedCompany === company && (
+                        <div style={{ marginLeft: '16px', marginTop: '8px' }}>
+                          {companyPositions.map(position => (
+                            <div key={position} style={{ marginBottom: '4px' }}>
+                              <Text size="xs" 
+                                    style={{ 
+                                      cursor: 'pointer',
+                                      color: selectedVacancy === position ? '#228be6' : '#666',
+                                      fontWeight: selectedVacancy === position ? 500 : 400
+                                    }}
+                                    onClick={() => setSelectedVacancy(selectedVacancy === position ? null : position)}>
+                                • {position}
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
-            <Select
-              label="Должность"
-              placeholder="Все должности"
-              clearable
-              value={selectedVacancy}
-              onChange={setSelectedVacancy}
-              data={Array.from(new Set(candidates.map(c => c.position))).map(position => ({ value: position, label: position }))}
-            />
+              <Button 
+                variant="light" 
+                size="xs" 
+                fullWidth
+                onClick={() => {
+                  setSelectedCompany(null);
+                  setSelectedVacancy(null);
+                }}
+              >
+                Сбросить фильтры
+              </Button>
 
-            <Button 
-              variant="light" 
-              size="xs" 
-              onClick={() => {
-                setSelectedCompany(null);
-                setSelectedVacancy(null);
-              }}
-            >
-              Сбросить фильтры
-            </Button>
+              <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '16px' }}>
+                <Text fw={600} size="sm" mb="sm">Статистика</Text>
+                <Stack gap="sm">
+                  <Badge color="blue" variant="light" fullWidth>
+                    Всего: {candidates.length}
+                  </Badge>
+                  <Badge color="green" variant="light" fullWidth>
+                    Активные: {candidates.filter(c => !['rejected', 'accepted'].includes(c.status)).length}
+                  </Badge>
+                  <Badge color="red" variant="light" fullWidth>
+                    Отказы: {candidates.filter(c => c.status === 'rejected').length}
+                  </Badge>
+                  <Badge color="green" variant="light" fullWidth>
+                    Приняты: {candidates.filter(c => c.status === 'accepted').length}
+                  </Badge>
+                </Stack>
+              </div>
+            </Stack>
+          </Paper>
+        </div>
 
-            <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '16px' }}>
-              <Text fw={600} size="sm" mb="sm">Статистика</Text>
-              <Stack gap="sm">
-                <Badge color="blue" variant="light" fullWidth>
-                  Всего: {candidates.length}
-                </Badge>
-                <Badge color="green" variant="light" fullWidth>
-                  Активные: {candidates.filter(c => !['rejected', 'accepted'].includes(c.status)).length}
-                </Badge>
-                <Badge color="red" variant="light" fullWidth>
-                  Отказы: {candidates.filter(c => c.status === 'rejected').length}
-                </Badge>
-                <Badge color="green" variant="light" fullWidth>
-                  Приняты: {candidates.filter(c => c.status === 'accepted').length}
-                </Badge>
-              </Stack>
-            </div>
-          </Stack>
-        </Paper>
-
-        {/* Основная область с канбан доской */}
-        <div style={{ flex: 1, overflowX: 'auto' }}>
+        {/* Основная область с канбан доской - с отступом от левого меню */}
+        <div style={{ flex: 1, overflowX: 'auto', marginLeft: '316px' }}>
           <DndContext
             sensors={sensors}
             onDragStart={handleDragStart}
@@ -477,7 +497,7 @@ export default function BoardPage() {
             </DragOverlay>
           </DndContext>
         </div>
-      </Group>
+      </div>
 
       {/* Модальное окно для добавления/редактирования кандидата */}
       <Modal
