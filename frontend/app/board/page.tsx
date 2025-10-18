@@ -577,15 +577,14 @@ export default function BoardPage() {
         </nav>
 
         {/* Основная область с канбан доской - с отступом от левого меню */}
-        <div style={{ flex: 1, marginLeft: '336px' }}>
+        <div style={{ flex: 1, marginLeft: '336px', overflowX: 'auto' }}>
           <Paper 
             p="md" 
             radius="md" 
             withBorder
             style={{ 
               backgroundColor: '#fafafa',
-              minHeight: '600px',
-              overflowX: 'auto'
+              minHeight: '600px'
             }}
           >
             <DndContext
@@ -597,6 +596,7 @@ export default function BoardPage() {
                 display: 'flex', 
                 gap: '16px', 
                 minWidth: 'max-content',
+                width: 'max-content',
                 paddingBottom: '16px'
               }}>
               {columns.map((column) => (
